@@ -118,12 +118,12 @@ impl Superblock
 
   pub fn block_size(&self) -> u32
   {
-    (2 as u32).pow(10 + self.log_block_size)
+    2u32.pow(10 + self.log_block_size)
   }
 
   pub fn cluster_size(&self) -> u32
   {
-    (2 as u32).pow(10 + self.log_cluster_size)
+    2u32.pow(10 + self.log_cluster_size)
   }
 }
 
