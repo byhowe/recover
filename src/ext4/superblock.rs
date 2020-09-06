@@ -2,8 +2,6 @@ use chrono::{DateTime, TimeZone, Utc};
 use std::convert::TryInto;
 use std::io;
 
-const EXT4_MAGIC_SIGNATURE: u16 = 0xEF53;
-
 #[derive(Debug)]
 #[repr(C)]
 pub struct Superblock
@@ -65,6 +63,8 @@ pub struct Superblock
 
 impl Superblock
 {
+  const MAGIC_SIGNATURE: u16 = 0xEF53;
+
   pub fn new<R>(mut inner: R) -> Result<Self, SuperblockError>
   where
     R: io::Read,
@@ -95,21 +95,21 @@ impl Superblock
       mnt_count: u16::from_le_bytes(block[52..54].try_into().unwrap()),
       max_mnt_count: u16::from_le_bytes(block[54..56].try_into().unwrap()),
       magic: u16::from_le_bytes(block[56..58].try_into().unwrap()),
-      state: State::from(u16::from_le_bytes(block[58..60].try_into().unwrap())),
-      errors: ErrorPolicy::from(u16::from_le_bytes(block[60..62].try_into().unwrap())),
+      state: State::from_raw(u16::from_le_bytes(block[58..60].try_into().unwrap()))?,
+      errors: ErrorPolicy::from_raw(u16::from_le_bytes(block[60..62].try_into().unwrap()))?,
       minor_rev_level: u16::from_le_bytes(block[62..64].try_into().unwrap()),
       lastcheck: Utc.timestamp(
         u32::from_le_bytes(block[64..68].try_into().unwrap()).into(),
         0,
       ),
       checkinterval: u32::from_le_bytes(block[68..72].try_into().unwrap()),
-      creator_os: Creator::from(u32::from_le_bytes(block[72..76].try_into().unwrap())),
-      rev_level: RevisionLevel::from(u32::from_le_bytes(block[76..80].try_into().unwrap())),
+      creator_os: Creator::from_raw(u32::from_le_bytes(block[72..76].try_into().unwrap()))?,
+      rev_level: RevisionLevel::from_raw(u32::from_le_bytes(block[76..80].try_into().unwrap()))?,
       def_resuid: u16::from_le_bytes(block[80..82].try_into().unwrap()),
       def_resgid: u16::from_le_bytes(block[82..84].try_into().unwrap()),
     };
 
-    if superblock.magic != EXT4_MAGIC_SIGNATURE {
+    if superblock.magic != Self::MAGIC_SIGNATURE {
       return Err(SuperblockError::Signature(superblock.magic));
     } else {
       Ok(superblock)
@@ -135,23 +135,27 @@ pub struct State
   pub orphans_being_recovered: bool,
 }
 
-impl From<u16> for State
+impl State
 {
-  fn from(state: u16) -> Self
-  {
-    Self {
-      cleanly_unmounted: state & 0x0001 != 0,
-      errors_detected: state & 0x0002 != 0,
-      orphans_being_recovered: state & 0x0004 != 0,
-    }
-  }
-}
+  const CLEANLY_UNMOUNTED: u16 = 0x0001;
+  const ERRORS_DETECTED: u16 = 0x0002;
+  const ORPHANS_BEING_RECOVERED: u16 = 0x0004;
 
-impl std::fmt::Display for State
-{
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
+  fn from_raw(state: u16) -> Result<Self, UnexpectedValue>
   {
-    write!(f, "{:?}", self)
+    let state_construct = Self {
+      cleanly_unmounted: state & Self::CLEANLY_UNMOUNTED != 0,
+      errors_detected: state & Self::ERRORS_DETECTED != 0,
+      orphans_being_recovered: state & Self::ORPHANS_BEING_RECOVERED != 0,
+    };
+
+    if state & !(Self::CLEANLY_UNMOUNTED | Self::ERRORS_DETECTED | Self::ORPHANS_BEING_RECOVERED)
+      != 0
+    {
+      Err(UnexpectedValue::State(state))
+    } else {
+      Ok(state_construct)
+    }
   }
 }
 
@@ -161,27 +165,22 @@ pub enum ErrorPolicy
   Continue,
   RemountReadOnly,
   Panic,
-  Unknown,
 }
 
-impl From<u16> for ErrorPolicy
+impl ErrorPolicy
 {
-  fn from(error: u16) -> Self
+  const CONTINUE: u16 = 1;
+  const REMOUNT_READ_ONLY: u16 = 2;
+  const PANIC: u16 = 3;
+
+  fn from_raw(error: u16) -> Result<Self, UnexpectedValue>
   {
     match error {
-      1 => Self::Continue,
-      2 => Self::RemountReadOnly,
-      3 => Self::Panic,
-      _ => Self::Unknown,
+      Self::CONTINUE => Ok(Self::Continue),
+      Self::REMOUNT_READ_ONLY => Ok(Self::RemountReadOnly),
+      Self::PANIC => Ok(Self::Panic),
+      _ => Err(UnexpectedValue::ErrorPolicy(error)),
     }
-  }
-}
-
-impl std::fmt::Display for ErrorPolicy
-{
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
-  {
-    write!(f, "{:?}", self)
   }
 }
 
@@ -193,29 +192,26 @@ pub enum Creator
   Masix,
   FreeBSD,
   Lites,
-  Unknown,
 }
 
-impl From<u32> for Creator
+impl Creator
 {
-  fn from(creator: u32) -> Self
+  const LINUX: u32 = 0;
+  const HURD: u32 = 1;
+  const MASIX: u32 = 2;
+  const FREE_BSD: u32 = 3;
+  const LITES: u32 = 4;
+
+  fn from_raw(creator: u32) -> Result<Self, UnexpectedValue>
   {
     match creator {
-      0 => Self::Linux,
-      1 => Self::Hurd,
-      2 => Self::Masix,
-      3 => Self::FreeBSD,
-      4 => Self::Lites,
-      _ => Self::Unknown,
+      Self::LINUX => Ok(Self::Linux),
+      Self::HURD => Ok(Self::Hurd),
+      Self::MASIX => Ok(Self::Masix),
+      Self::FREE_BSD => Ok(Self::FreeBSD),
+      Self::LITES => Ok(Self::Lites),
+      _ => Err(UnexpectedValue::Creator(creator)),
     }
-  }
-}
-
-impl std::fmt::Display for Creator
-{
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
-  {
-    write!(f, "{:?}", self)
   }
 }
 
@@ -224,26 +220,46 @@ pub enum RevisionLevel
 {
   Original,
   Dynamic,
-  Unknown,
 }
 
-impl From<u32> for RevisionLevel
+impl RevisionLevel
 {
-  fn from(rev: u32) -> Self
+  const ORIGINAL_FORMAT: u32 = 0;
+  const V2_FORMAT: u32 = 1;
+
+  fn from_raw(rev: u32) -> Result<Self, UnexpectedValue>
   {
     match rev {
-      0 => Self::Original,
-      1 => Self::Dynamic,
-      _ => Self::Unknown,
+      Self::ORIGINAL_FORMAT => Ok(Self::Original),
+      Self::V2_FORMAT => Ok(Self::Dynamic),
+      _ => Err(UnexpectedValue::RevisionLevel(rev)),
     }
   }
 }
 
-impl std::fmt::Display for RevisionLevel
+#[derive(Debug)]
+pub enum UnexpectedValue
+{
+  State(u16),
+  ErrorPolicy(u16),
+  Creator(u32),
+  RevisionLevel(u32),
+}
+
+impl std::fmt::Display for UnexpectedValue
 {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
   {
-    write!(f, "{:?}", self)
+    write!(
+      f,
+      "{}",
+      match self {
+        Self::State(state) => format!("Unknown state flag value: {:#018b}", state),
+        Self::ErrorPolicy(error) => format!("Unknown error policy value: {}", error),
+        Self::Creator(creator) => format!("Unknown creator OS value: {}", creator),
+        Self::RevisionLevel(rev) => format!("Unknown revision level value: {}", rev),
+      }
+    )
   }
 }
 
@@ -252,6 +268,7 @@ pub enum SuperblockError
 {
   IOError(io::Error),
   Signature(u16),
+  UnexpectedValue(UnexpectedValue),
 }
 
 impl From<io::Error> for SuperblockError
@@ -259,6 +276,14 @@ impl From<io::Error> for SuperblockError
   fn from(e: io::Error) -> Self
   {
     Self::IOError(e)
+  }
+}
+
+impl From<UnexpectedValue> for SuperblockError
+{
+  fn from(unexpected: UnexpectedValue) -> Self
+  {
+    Self::UnexpectedValue(unexpected)
   }
 }
 
@@ -276,8 +301,10 @@ impl std::fmt::Display for SuperblockError
         ),
         Self::Signature(sig) => format!(
           "Expected magic number was {:#06x} but found {:#06x}.",
-          EXT4_MAGIC_SIGNATURE, sig
+          Superblock::MAGIC_SIGNATURE,
+          sig
         ),
+        Self::UnexpectedValue(field) => format!("{}", field),
       }
     )
   }
