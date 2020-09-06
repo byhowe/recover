@@ -42,9 +42,9 @@ pub struct Superblock
   pub max_mnt_count: u16, // 54 - 56
   /// Magic signature, 0xEF53
   magic: u16, // 56 - 58
-  /// File system state. See
+  /// File system state.
   pub state: State, // 58 - 60
-  /// Behaviour when detecting errors. See
+  /// Behaviour when detecting errors.
   pub errors: ErrorPolicy, // 60 - 62
   /// Minor revision level.
   pub minor_rev_level: u16, // 62 - 64
@@ -52,9 +52,9 @@ pub struct Superblock
   pub lastcheck: DateTime<Utc>, // 64 - 68
   /// Maximum time between checks, in seconds.
   pub checkinterval: u32, // 68 - 72
-  /// Creator OS. See the table
+  /// Creator OS.
   pub creator_os: Creator, // 72 - 76
-  /// Revision level. See the table
+  /// Revision level.
   pub rev_level: RevisionLevel, // 76 - 80
   /// Default uid for reserved blocks.
   pub def_resuid: u16, // 80 - 82
@@ -67,13 +67,13 @@ pub struct Superblock
   /// Block group # of this superblock.
   pub block_group_nr: u16, // 90 - 92
   /// Compatible feature set flags. Kernel can still read/write this fs even if
-  /// it doesn’t understand a flag; fsck should not do that. See the
+  /// it doesn’t understand a flag; fsck should not do that.
   pub feature_compat: u32, // 92 - 96
   /// Incompatible feature set. If the kernel or fsck doesn’t understand one of
-  /// these bits, it should stop. See the
+  /// these bits, it should stop.
   pub feature_incompat: u32, // 96 - 100
   /// Readonly-compatible feature set. If the kernel doesn’t understand one of
-  /// these bits, it can still mount read-only. See the
+  /// these bits, it can still mount read-only.
   pub feature_ro_compat: u32, // 100 - 104
   /// 128-bit UUID for volume.
   pub uuid: [u8; 16], // 104 - 120
@@ -83,14 +83,14 @@ pub struct Superblock
   pub last_mounted: String, // 136 - 200
   /// For compression (Not used in e2fsprogs/Linux)
   pub algorithm_usage_bitmap: u32, // 200 - 204
-  /// #. of blocks to try to preallocate for … files? (Not used in
+  /// #. of blocks to try to preallocate for ... files? (Not used in
   /// e2fsprogs/Linux)
   pub prealloc_blocks: u8, // 204 - 205
   /// #. of blocks to preallocate for directories. (Not used in e2fsprogs/Linux)
   pub prealloc_dir_blocks: u8, // 205 - 206
   /// Number of reserved GDT entries for future filesystem expansion.
   pub reserved_gdt_blocks: u16, // 206 - 208
-  /// UUID of journal superblock
+  /// UUID of journal superblock.
   pub journal_uuid: [u8; 16], // 208 - 224
   /// inode number of journal file.
   pub journal_inum: u32, // 224 - 228
@@ -101,20 +101,23 @@ pub struct Superblock
   pub last_orphan: u32, // 232 - 236
   /// HTREE hash seed.
   pub hash_seed: [u32; 4], // 236 - 252
-  /// Default hash algorithm to use for directory hashes. See
+  /// Default hash algorithm to use for directory hashes.
   pub def_hash_version: u8, // 252 - 253
-  /// If this value is 0 or EXT3_JNL_BACKUP_BLOCKS (1), then the
+  /// If this value is 0 or EXT3_JNL_BACKUP_BLOCKS (1), then the jnl_blocks
+  /// field contains a duplicate copy of the inode’s i_block[] array and i_size.
   pub jnl_backup_type: u8, // 253 - 254
   /// Size of group descriptors, in bytes, if the 64bit incompat feature flag is
   /// set.
   pub desc_size: u16, // 254 - 256
-  /// Default mount options. See the
+  /// Default mount options.
   pub default_mount_opts: u32, // 256 - 260
   /// First metablock block group, if the meta_bg feature is enabled.
   pub first_meta_bg: u32, // 260 - 264
   /// When the filesystem was created, in seconds since the epoch.
   pub mkfs_time: u32, // 264 - 268
-  /// Backup copy of the journal inode’s
+  /// Backup copy of the journal inode’s i_block[] array in the first 15
+  /// elements and i_size_high and i_size in the 16th and 17th elements,
+  /// respectively.
   pub jnl_blocks: [u32; 17], // 268 - 336
   /// High 32-bits of the block count.
   pub blocks_count_hi: u32, // 336 - 340
@@ -126,7 +129,7 @@ pub struct Superblock
   pub min_extra_isize: u16, // 348 - 350
   /// New inodes should reserve # bytes.
   pub want_extra_isize: u16, // 350 - 352
-  /// Miscellaneous flags. See the
+  /// Miscellaneous flags.
   pub flags: u32, // 352 - 356
   /// RAID stride. This is the number of logical blocks read from or written to
   /// the disk before moving to the next disk. This affects the placement of
@@ -135,7 +138,7 @@ pub struct Superblock
   /// #. seconds to wait in multi-mount prevention (MMP) checking. In theory,
   /// MMP is a mechanism to record in the superblock which host and device have
   /// mounted the filesystem, in order to prevent multiple mounts. This feature
-  /// does not seem to be implemented…
+  /// does not seem to be implemented...
   pub mmp_interval: u16, // 358 - 360
   /// Block # for multi-mount protection data.
   pub mmp_block: u64, // 360 - 368
@@ -144,7 +147,7 @@ pub struct Superblock
   /// by the block allocator to try to reduce the number of read-modify-write
   /// operations in a RAID5/6.
   pub raid_stripe_width: u32, // 368 - 372
-  /// Size of a flexible block group is 2 ^
+  /// Size of a flexible block group is 2 ^ log_groups_per_flex.
   pub log_groups_per_flex: u8, // 372 - 373
   /// Metadata checksum algorithm type. The only valid value is 1 (crc32c).
   pub checksum_type: u8, // 373 - 374
@@ -185,9 +188,9 @@ pub struct Superblock
   pub last_error_func: [u8; 32], // 480 - 512
   /// ASCIIZ string of mount options.
   pub mount_opts: [u8; 64], // 512 - 576
-  /// Inode number of user
+  /// Inode number of user quota file.
   pub usr_quota_inum: u32, // 576 - 580
-  /// Inode number of group
+  /// Inode number of group quota file.
   pub grp_quota_inum: u32, // 580 - 584
   /// Overhead blocks/clusters in fs. (Huh? This field is always zero, which
   /// means that the kernel calculates it dynamically.)
@@ -195,11 +198,11 @@ pub struct Superblock
   /// Block groups containing superblock backups (if sparse_super2)
   pub backup_bgs: [u32; 2], // 588 - 596
   /// Encryption algorithms in use. There can be up to four algorithms in use at
-  /// any time; valid algorithm codes are given in the
+  /// any time.
   pub encrypt_algos: [u8; 4], // 596 - 600
   /// Salt for the string2key algorithm for encryption.
   pub encrypt_pw_salt: [u8; 16], // 600 - 616
-  /// Inode number of lost+found
+  /// Inode number of lost+found.
   pub lpf_ino: u32, // 616 - 620
   /// Inode that tracks project quotas.
   pub prj_quota_inum: u32, // 620 - 624
