@@ -68,15 +68,15 @@ pub struct Superblock
   pub block_group_nr: u16, // 90 - 92
   /// Compatible feature set flags. Kernel can still read/write this fs even if
   /// it doesn’t understand a flag; fsck should not do that.
-  pub feature_compat: u32, // 92 - 96
+  pub feature_compat: FeatureCompat, // 92 - 96
   /// Incompatible feature set. If the kernel or fsck doesn’t understand one of
   /// these bits, it should stop.
-  pub feature_incompat: u32, // 96 - 100
+  pub feature_incompat: FeatureIncompat, // 96 - 100
   /// Readonly-compatible feature set. If the kernel doesn’t understand one of
   /// these bits, it can still mount read-only.
-  pub feature_ro_compat: u32, // 100 - 104
+  pub feature_ro_compat: ReadOnlyFeatureCompat, // 100 - 104
   /// 128-bit UUID for volume.
-  pub uuid: [u8; 16], // 104 - 120
+  pub uuid: u128, // 104 - 120
   /// Volume label.
   pub volume_name: String, // 120 - 136
   /// Directory where filesystem was last mounted.
@@ -227,8 +227,6 @@ pub struct Superblock
   pub encoding: u16, // 636 - 638
   /// Filename charset encoding flags.
   pub encoding_flags: u16, // 638 - 640
-  /// Padding to the end of the block.
-  pub reserved: [u32; 95], // 640 - 1020
   /// Superblock checksum.
   pub checksum: u32, // 1020 - 1024
 }
@@ -273,13 +271,10 @@ impl Superblock
       first_ino: LittleEndian::read_u32(&block[84..88]),
       inode_size: LittleEndian::read_u16(&block[88..90]),
       block_group_nr: LittleEndian::read_u16(&block[90..92]),
-      feature_compat: LittleEndian::read_u32(&block[92..96]),
-      feature_incompat: LittleEndian::read_u32(&block[96..100]),
-      feature_ro_compat: LittleEndian::read_u32(&block[100..104]),
-      uuid: from_le_bytes_to_u8_array(&block[104..120])
-        .as_slice()
-        .try_into()
-        .unwrap(),
+      feature_compat: FeatureCompat::from_raw(LittleEndian::read_u32(&block[92..96]))?,
+      feature_incompat: FeatureIncompat::from_raw(LittleEndian::read_u32(&block[96..100]))?,
+      feature_ro_compat: ReadOnlyFeatureCompat::from_raw(LittleEndian::read_u32(&block[100..104]))?,
+      uuid: LittleEndian::read_u128(&block[104..120]),
       volume_name: String::from_utf8(block[120..136].to_vec())?,
       last_mounted: String::from_utf8(block[136..200].to_vec())?,
       algorithm_usage_bitmap: LittleEndian::read_u32(&block[200..204]),
@@ -376,10 +371,6 @@ impl Superblock
         .unwrap(),
       encoding: LittleEndian::read_u16(&block[636..638]),
       encoding_flags: LittleEndian::read_u16(&block[638..640]),
-      reserved: from_le_bytes_to_u32_array(&block[640..1020])
-        .as_slice()
-        .try_into()
-        .unwrap(),
       checksum: LittleEndian::read_u32(&block[1020..1024]),
     };
 
@@ -398,6 +389,214 @@ impl Superblock
   pub fn cluster_size(&self) -> u32
   {
     2u32.pow(10 + self.log_cluster_size)
+  }
+}
+
+impl std::fmt::Display for Superblock
+{
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
+  {
+    write!(
+      f,
+      "inodes_count            {}\n\
+       blocks_count_lo         {}\n\
+       r_blocks_count_lo       {}\n\
+       free_blocks_count_lo    {}\n\
+       free_inodes_count       {}\n\
+       first_data_block        {}\n\
+       log_block_size          {}\n\
+       log_cluster_size        {}\n\
+       blocks_per_group        {}\n\
+       clusters_per_group      {}\n\
+       inodes_per_group        {}\n\
+       mtime                   {}\n\
+       wtime                   {}\n\
+       mnt_count               {}\n\
+       max_mnt_count           {}\n\
+       magic                   {:#06X}\n\
+       state                   {}\n\
+       errors                  {}\n\
+       minor_rev_level         {}\n\
+       lastcheck               {}\n\
+       checkinterval           {}\n\
+       creator_os              {}\n\
+       rev_level               {}\n\
+       def_resuid              {}\n\
+       def_resgid              {}\n\
+       first_ino               {}\n\
+       inode_size              {}\n\
+       block_group_nr          {}\n\
+       feature_compat          {}\n\
+       feature_incompat        {}\n\
+       feature_ro_compat       {}\n\
+       uuid                    {:#X}\n\
+       volume_name             {}\n\
+       last_mounted            {}\n\
+       algorithm_usage_bitmap  {}\n\
+       prealloc_blocks         {}\n\
+       prealloc_dir_blocks     {}\n\
+       reserved_gdt_blocks     {}\n\
+       journal_uuid            {:?}\n\
+       journal_inum            {}\n\
+       journal_dev             {}\n\
+       last_orphan             {}\n\
+       hash_seed               {:?}\n\
+       def_hash_version        {}\n\
+       jnl_backup_type         {}\n\
+       desc_size               {}\n\
+       default_mount_opts      {}\n\
+       first_meta_bg           {}\n\
+       mkfs_time               {}\n\
+       jnl_blocks              {:?}\n\
+       blocks_count_hi         {}\n\
+       r_blocks_count_hi       {}\n\
+       free_blocks_count_hi    {}\n\
+       min_extra_isize         {}\n\
+       want_extra_isize        {}\n\
+       flags                   {}\n\
+       raid_stride             {}\n\
+       mmp_interval            {}\n\
+       mmp_block               {}\n\
+       raid_stripe_width       {}\n\
+       log_groups_per_flex     {}\n\
+       checksum_type           {}\n\
+       reserved_pad            {}\n\
+       kbytes_written          {}\n\
+       snapshot_inum           {}\n\
+       snapshot_id             {}\n\
+       snapshot_r_blocks_count {}\n\
+       snapshot_list           {}\n\
+       error_count             {}\n\
+       first_error_time        {}\n\
+       first_error_ino         {}\n\
+       first_error_block       {}\n\
+       first_error_func        {:?}\n\
+       first_error_line        {}\n\
+       last_error_time         {}\n\
+       last_error_ino          {}\n\
+       last_error_line         {}\n\
+       last_error_block        {}\n\
+       last_error_func         {:?}\n\
+       mount_opts              {:?}\n\
+       usr_quota_inum          {}\n\
+       grp_quota_inum          {}\n\
+       overhead_blocks         {}\n\
+       backup_bgs              {:?}\n\
+       encrypt_algos           {:?}\n\
+       encrypt_pw_salt         {:?}\n\
+       lpf_ino                 {}\n\
+       prj_quota_inum          {}\n\
+       checksum_seed           {}\n\
+       wtime_hi                {}\n\
+       mtime_hi                {}\n\
+       mkfs_time_hi            {}\n\
+       lastcheck_hi            {}\n\
+       first_error_time_hi     {}\n\
+       last_error_time_hi      {}\n\
+       pad                     {:?}\n\
+       encoding                {}\n\
+       encoding_flags          {}\n\
+       checksum                {}",
+      self.inodes_count,
+      self.blocks_count_lo,
+      self.r_blocks_count_lo,
+      self.free_blocks_count_lo,
+      self.free_inodes_count,
+      self.first_data_block,
+      self.log_block_size,
+      self.log_cluster_size,
+      self.blocks_per_group,
+      self.clusters_per_group,
+      self.inodes_per_group,
+      self.mtime,
+      self.wtime,
+      self.mnt_count,
+      self.max_mnt_count,
+      self.magic,
+      self.state,
+      self.errors,
+      self.minor_rev_level,
+      self.lastcheck,
+      self.checkinterval,
+      self.creator_os,
+      self.rev_level,
+      self.def_resuid,
+      self.def_resgid,
+      self.first_ino,
+      self.inode_size,
+      self.block_group_nr,
+      self.feature_compat,
+      self.feature_incompat,
+      self.feature_ro_compat,
+      self.uuid,
+      self.volume_name,
+      self.last_mounted,
+      self.algorithm_usage_bitmap,
+      self.prealloc_blocks,
+      self.prealloc_dir_blocks,
+      self.reserved_gdt_blocks,
+      self.journal_uuid,
+      self.journal_inum,
+      self.journal_dev,
+      self.last_orphan,
+      self.hash_seed,
+      self.def_hash_version,
+      self.jnl_backup_type,
+      self.desc_size,
+      self.default_mount_opts,
+      self.first_meta_bg,
+      self.mkfs_time,
+      self.jnl_blocks,
+      self.blocks_count_hi,
+      self.r_blocks_count_hi,
+      self.free_blocks_count_hi,
+      self.min_extra_isize,
+      self.want_extra_isize,
+      self.flags,
+      self.raid_stride,
+      self.mmp_interval,
+      self.mmp_block,
+      self.raid_stripe_width,
+      self.log_groups_per_flex,
+      self.checksum_type,
+      self.reserved_pad,
+      self.kbytes_written,
+      self.snapshot_inum,
+      self.snapshot_id,
+      self.snapshot_r_blocks_count,
+      self.snapshot_list,
+      self.error_count,
+      self.first_error_time,
+      self.first_error_ino,
+      self.first_error_block,
+      self.first_error_func,
+      self.first_error_line,
+      self.last_error_time,
+      self.last_error_ino,
+      self.last_error_line,
+      self.last_error_block,
+      self.last_error_func,
+      self.mount_opts,
+      self.usr_quota_inum,
+      self.grp_quota_inum,
+      self.overhead_blocks,
+      self.backup_bgs,
+      self.encrypt_algos,
+      self.encrypt_pw_salt,
+      self.lpf_ino,
+      self.prj_quota_inum,
+      self.checksum_seed,
+      self.wtime_hi,
+      self.mtime_hi,
+      self.mkfs_time_hi,
+      self.lastcheck_hi,
+      self.first_error_time_hi,
+      self.last_error_time_hi,
+      self.pad,
+      self.encoding,
+      self.encoding_flags,
+      self.checksum,
+    )
   }
 }
 
@@ -448,6 +647,26 @@ impl State
   }
 }
 
+impl std::fmt::Display for State
+{
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
+  {
+    let mut output = String::new();
+    if self.cleanly_unmounted {
+      output.push_str("clean, ");
+    }
+    if self.errors_detected {
+      output.push_str("errors detected, ");
+    }
+    if self.orphans_being_recovered {
+      output.push_str("orphans being recovered, ");
+    }
+    output.pop();
+    output.pop();
+    write!(f, "{}", output)
+  }
+}
+
 #[derive(Debug)]
 pub enum ErrorPolicy
 {
@@ -470,6 +689,22 @@ impl ErrorPolicy
       Self::PANIC => Ok(Self::Panic),
       _ => Err(UnexpectedValue::ErrorPolicy(error)),
     }
+  }
+}
+
+impl std::fmt::Display for ErrorPolicy
+{
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
+  {
+    write!(
+      f,
+      "{}",
+      match self {
+        Self::Continue => "Continue",
+        Self::RemountReadOnly => "Remount Read-only",
+        Self::Panic => "Panic",
+      }
+    )
   }
 }
 
@@ -504,6 +739,14 @@ impl Creator
   }
 }
 
+impl std::fmt::Display for Creator
+{
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
+  {
+    write!(f, "{:?}", self)
+  }
+}
+
 #[derive(Debug)]
 pub enum RevisionLevel
 {
@@ -526,6 +769,400 @@ impl RevisionLevel
   }
 }
 
+impl std::fmt::Display for RevisionLevel
+{
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
+  {
+    write!(
+      f,
+      "{}",
+      match self {
+        Self::Original => "0 (Original format)",
+        Self::Dynamic => "1 (v2 format w/ dynamic inode sizes)",
+      }
+    )
+  }
+}
+
+#[derive(Debug)]
+pub struct FeatureCompat
+{
+  pub dir_prealloc: bool,
+  pub imagic_inodes: bool,
+  pub has_journal: bool,
+  pub ext_attr: bool,
+  pub resize_inode: bool,
+  pub dir_index: bool,
+  pub lazy_bg: bool,
+  pub exclude_inode: bool,
+  pub exclude_bitmap: bool,
+  pub sparse_super2: bool,
+}
+
+impl FeatureCompat
+{
+  const DIR_PREALLOC: u32 = 0x1;
+  const IMAGIC_INODE: u32 = 0x2;
+  const HAS_JOURNAL: u32 = 0x4;
+  const EXT_ATTR: u32 = 0x8;
+  const RESIZE_INODE: u32 = 0x10;
+  const DIR_INDEX: u32 = 0x20;
+  const LAZY_BG: u32 = 0x40;
+  const EXCLUDE_INODE: u32 = 0x80;
+  const EXCLUDE_BITMAP: u32 = 0x100;
+  const SPARSE_SUPER2: u32 = 0x200;
+
+  fn from_raw(feature: u32) -> Result<Self, UnexpectedValue>
+  {
+    let feature_struct = Self {
+      dir_prealloc: feature & Self::DIR_PREALLOC != 0,
+      imagic_inodes: feature & Self::IMAGIC_INODE != 0,
+      has_journal: feature & Self::HAS_JOURNAL != 0,
+      ext_attr: feature & Self::EXT_ATTR != 0,
+      resize_inode: feature & Self::RESIZE_INODE != 0,
+      dir_index: feature & Self::DIR_INDEX != 0,
+      lazy_bg: feature & Self::LAZY_BG != 0,
+      exclude_inode: feature & Self::EXCLUDE_INODE != 0,
+      exclude_bitmap: feature & Self::EXCLUDE_BITMAP != 0,
+      sparse_super2: feature & Self::SPARSE_SUPER2 != 0,
+    };
+
+    if feature
+      & !(Self::DIR_PREALLOC
+        | Self::IMAGIC_INODE
+        | Self::HAS_JOURNAL
+        | Self::EXT_ATTR
+        | Self::RESIZE_INODE
+        | Self::DIR_INDEX
+        | Self::LAZY_BG
+        | Self::EXCLUDE_INODE
+        | Self::EXCLUDE_BITMAP
+        | Self::SPARSE_SUPER2)
+      != 0
+    {
+      Err(UnexpectedValue::FeatureCompat(feature))
+    } else {
+      Ok(feature_struct)
+    }
+  }
+}
+
+impl std::fmt::Display for FeatureCompat
+{
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
+  {
+    let mut output = String::new();
+    if self.dir_prealloc {
+      output.push_str("dir_prealloc ");
+    }
+    if self.imagic_inodes {
+      output.push_str("imagic_inodes ");
+    }
+    if self.has_journal {
+      output.push_str("has_journal ");
+    }
+    if self.ext_attr {
+      output.push_str("ext_attr ");
+    }
+    if self.resize_inode {
+      output.push_str("resize_inode ");
+    }
+    if self.dir_index {
+      output.push_str("dir_index ");
+    }
+    if self.lazy_bg {
+      output.push_str("lazy_bg ");
+    }
+    if self.exclude_inode {
+      output.push_str("exclude_inode ");
+    }
+    if self.exclude_bitmap {
+      output.push_str("exclude_bitmap ");
+    }
+    if self.sparse_super2 {
+      output.push_str("sparse_super2 ");
+    }
+    output.pop();
+    write!(f, "{}", output)
+  }
+}
+
+#[derive(Debug)]
+pub struct FeatureIncompat
+{
+  pub compression: bool,
+  pub filetype: bool,
+  pub recover: bool,
+  pub journal_dev: bool,
+  pub meta_bg: bool,
+  pub extents: bool,
+  pub bit64: bool,
+  pub mmp: bool,
+  pub flex_bg: bool,
+  pub ea_node: bool,
+  pub dirdata: bool,
+  pub csum_seed: bool,
+  pub largedir: bool,
+  pub inline_data: bool,
+  pub encrypt: bool,
+}
+
+impl FeatureIncompat
+{
+  const COMPRESSION: u32 = 0x1;
+  const FILETYPE: u32 = 0x2;
+  const RECOVER: u32 = 0x4;
+  const JOURNAL_DEV: u32 = 0x8;
+  const META_BG: u32 = 0x10;
+  const EXTENTS: u32 = 0x40;
+  const BIT64: u32 = 0x80;
+  const MMP: u32 = 0x100;
+  const FLEX_BG: u32 = 0x200;
+  const EA_NODE: u32 = 0x400;
+  const DIRDATA: u32 = 0x1000;
+  const CSUM_SEED: u32 = 0x2000;
+  const LARGEDIR: u32 = 0x4000;
+  const INLINE_DATA: u32 = 0x8000;
+  const ENCRYPT: u32 = 0x10000;
+
+  fn from_raw(feature: u32) -> Result<Self, UnexpectedValue>
+  {
+    let feature_struct = Self {
+      compression: feature & Self::COMPRESSION != 0,
+      filetype: feature & Self::FILETYPE != 0,
+      recover: feature & Self::RECOVER != 0,
+      journal_dev: feature & Self::JOURNAL_DEV != 0,
+      meta_bg: feature & Self::META_BG != 0,
+      extents: feature & Self::EXTENTS != 0,
+      bit64: feature & Self::BIT64 != 0,
+      mmp: feature & Self::MMP != 0,
+      flex_bg: feature & Self::FLEX_BG != 0,
+      ea_node: feature & Self::EA_NODE != 0,
+      dirdata: feature & Self::DIRDATA != 0,
+      csum_seed: feature & Self::CSUM_SEED != 0,
+      largedir: feature & Self::LARGEDIR != 0,
+      inline_data: feature & Self::INLINE_DATA != 0,
+      encrypt: feature & Self::ENCRYPT != 0,
+    };
+
+    if feature
+      & !(Self::COMPRESSION
+        | Self::FILETYPE
+        | Self::RECOVER
+        | Self::JOURNAL_DEV
+        | Self::META_BG
+        | Self::EXTENTS
+        | Self::BIT64
+        | Self::MMP
+        | Self::FLEX_BG
+        | Self::EA_NODE
+        | Self::DIRDATA
+        | Self::CSUM_SEED
+        | Self::LARGEDIR
+        | Self::INLINE_DATA
+        | Self::ENCRYPT)
+      != 0
+    {
+      Err(UnexpectedValue::FeatureIncompat(feature))
+    } else {
+      Ok(feature_struct)
+    }
+  }
+}
+
+impl std::fmt::Display for FeatureIncompat
+{
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
+  {
+    let mut output = String::new();
+    if self.compression {
+      output.push_str("compression ");
+    }
+    if self.filetype {
+      output.push_str("filetype ");
+    }
+    if self.recover {
+      output.push_str("recover ");
+    }
+    if self.journal_dev {
+      output.push_str("journal_dev ");
+    }
+    if self.meta_bg {
+      output.push_str("meta_bg ");
+    }
+    if self.extents {
+      output.push_str("extents ");
+    }
+    if self.bit64 {
+      output.push_str("64bit ");
+    }
+    if self.mmp {
+      output.push_str("mmp ");
+    }
+    if self.flex_bg {
+      output.push_str("flex_bg ");
+    }
+    if self.ea_node {
+      output.push_str("ea_node ");
+    }
+    if self.dirdata {
+      output.push_str("dirdata ");
+    }
+    if self.csum_seed {
+      output.push_str("csum_seed ");
+    }
+    if self.largedir {
+      output.push_str("largedir ");
+    }
+    if self.inline_data {
+      output.push_str("inline_data ");
+    }
+    if self.encrypt {
+      output.push_str("encrypt ");
+    }
+    output.pop();
+    write!(f, "{}", output)
+  }
+}
+
+#[derive(Debug)]
+pub struct ReadOnlyFeatureCompat
+{
+  pub sparse_super: bool,
+  pub large_file: bool,
+  pub btree_dir: bool,
+  pub huge_file: bool,
+  pub gdt_csum: bool,
+  pub dir_nlink: bool,
+  pub extra_isize: bool,
+  pub has_snapshot: bool,
+  pub quota: bool,
+  pub bigalloc: bool,
+  pub metadata_csum: bool,
+  pub replica: bool,
+  pub readonly: bool,
+  pub project: bool,
+  pub verity: bool,
+}
+
+impl ReadOnlyFeatureCompat
+{
+  const SPARSE_SUPER: u32 = 0x1;
+  const LARGE_FILE: u32 = 0x2;
+  const BTREE_DIR: u32 = 0x4;
+  const HUGE_FILE: u32 = 0x8;
+  const GDT_CSUM: u32 = 0x10;
+  const DIR_NLINK: u32 = 0x20;
+  const EXTRA_ISIZE: u32 = 0x40;
+  const HAS_SNAPSHOT: u32 = 0x80;
+  const QUOTA: u32 = 0x100;
+  const BIGALLOC: u32 = 0x200;
+  const METADATA_CSUM: u32 = 0x400;
+  const REPLICA: u32 = 0x800;
+  const READONLY: u32 = 0x1000;
+  const PROJECT: u32 = 0x2000;
+  const VERITY: u32 = 0x8000;
+
+  fn from_raw(feature: u32) -> Result<Self, UnexpectedValue>
+  {
+    let feature_struct = Self {
+      sparse_super: feature & Self::SPARSE_SUPER != 0,
+      large_file: feature & Self::LARGE_FILE != 0,
+      btree_dir: feature & Self::BTREE_DIR != 0,
+      huge_file: feature & Self::HUGE_FILE != 0,
+      gdt_csum: feature & Self::GDT_CSUM != 0,
+      dir_nlink: feature & Self::DIR_NLINK != 0,
+      extra_isize: feature & Self::EXTRA_ISIZE != 0,
+      has_snapshot: feature & Self::HAS_SNAPSHOT != 0,
+      quota: feature & Self::QUOTA != 0,
+      bigalloc: feature & Self::BIGALLOC != 0,
+      metadata_csum: feature & Self::METADATA_CSUM != 0,
+      replica: feature & Self::REPLICA != 0,
+      readonly: feature & Self::READONLY != 0,
+      project: feature & Self::PROJECT != 0,
+      verity: feature & Self::VERITY != 0,
+    };
+
+    if feature
+      & !(Self::SPARSE_SUPER
+        | Self::LARGE_FILE
+        | Self::BTREE_DIR
+        | Self::HUGE_FILE
+        | Self::GDT_CSUM
+        | Self::DIR_NLINK
+        | Self::EXTRA_ISIZE
+        | Self::HAS_SNAPSHOT
+        | Self::QUOTA
+        | Self::BIGALLOC
+        | Self::METADATA_CSUM
+        | Self::REPLICA
+        | Self::READONLY
+        | Self::PROJECT
+        | Self::VERITY)
+      != 0
+    {
+      Err(UnexpectedValue::ReadOnlyFeatureCompat(feature))
+    } else {
+      Ok(feature_struct)
+    }
+  }
+}
+
+impl std::fmt::Display for ReadOnlyFeatureCompat
+{
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
+  {
+    let mut output = String::new();
+    if self.sparse_super {
+      output.push_str("sparse_super ");
+    }
+    if self.large_file {
+      output.push_str("large_file ");
+    }
+    if self.btree_dir {
+      output.push_str("btree_dir ");
+    }
+    if self.huge_file {
+      output.push_str("huge_file ");
+    }
+    if self.gdt_csum {
+      output.push_str("gdt_csum ");
+    }
+    if self.dir_nlink {
+      output.push_str("dir_nlink ");
+    }
+    if self.extra_isize {
+      output.push_str("extra_isize ");
+    }
+    if self.has_snapshot {
+      output.push_str("has_snapshot ");
+    }
+    if self.quota {
+      output.push_str("quota ");
+    }
+    if self.bigalloc {
+      output.push_str("bigalloc ");
+    }
+    if self.metadata_csum {
+      output.push_str("metadata_csum ");
+    }
+    if self.replica {
+      output.push_str("replica ");
+    }
+    if self.readonly {
+      output.push_str("readonly ");
+    }
+    if self.project {
+      output.push_str("project ");
+    }
+    if self.verity {
+      output.push_str("verity ");
+    }
+    output.pop();
+    write!(f, "{}", output)
+  }
+}
+
 #[derive(Debug)]
 pub enum UnexpectedValue
 {
@@ -533,6 +1170,9 @@ pub enum UnexpectedValue
   ErrorPolicy(u16),
   Creator(u32),
   RevisionLevel(u32),
+  FeatureCompat(u32),
+  FeatureIncompat(u32),
+  ReadOnlyFeatureCompat(u32),
 }
 
 impl std::fmt::Display for UnexpectedValue
@@ -547,6 +1187,14 @@ impl std::fmt::Display for UnexpectedValue
         Self::ErrorPolicy(error) => format!("Unknown error policy value: {}", error),
         Self::Creator(creator) => format!("Unknown creator OS value: {}", creator),
         Self::RevisionLevel(rev) => format!("Unknown revision level value: {}", rev),
+        Self::FeatureCompat(feature) =>
+          format!("Unknown feature compat flag value: {:#034b}", feature),
+        Self::FeatureIncompat(feature) =>
+          format!("Unknown feature incompat flag value: {:#034b}", feature),
+        Self::ReadOnlyFeatureCompat(feature) => format!(
+          "Unknown read-only feature compat flag value: {:#034b}",
+          feature
+        ),
       }
     )
   }

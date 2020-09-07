@@ -21,7 +21,7 @@ fn main()
     std::process::exit(1);
   });
 
-  println!("\n{:?}\n", sb);
+  println!("\n{}\n", sb);
   println!("block size: {}", sb.block_size());
   println!("cluseter size: {}", sb.cluster_size());
 }
