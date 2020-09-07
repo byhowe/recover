@@ -1,3 +1,4 @@
+use crate::uuid::Uuid;
 use byteorder::{ByteOrder, LittleEndian};
 use chrono::{DateTime, TimeZone, Utc};
 use std::convert::TryInto;
@@ -76,7 +77,7 @@ pub struct Superblock
   /// these bits, it can still mount read-only.
   pub feature_ro_compat: ReadOnlyFeatureCompat, // 100 - 104
   /// 128-bit UUID for volume.
-  pub uuid: u128, // 104 - 120
+  pub uuid: Uuid, // 104 - 120
   /// Volume label.
   pub volume_name: String, // 120 - 136
   /// Directory where filesystem was last mounted.
@@ -91,7 +92,7 @@ pub struct Superblock
   /// Number of reserved GDT entries for future filesystem expansion.
   pub reserved_gdt_blocks: u16, // 206 - 208
   /// UUID of journal superblock.
-  pub journal_uuid: [u8; 16], // 208 - 224
+  pub journal_uuid: Uuid, // 208 - 224
   /// inode number of journal file.
   pub journal_inum: u32, // 224 - 228
   /// Device number of journal file, if the external journal feature flag is
@@ -100,9 +101,9 @@ pub struct Superblock
   /// Start of list of orphaned inodes to delete.
   pub last_orphan: u32, // 232 - 236
   /// HTREE hash seed.
-  pub hash_seed: [u32; 4], // 236 - 252
+  pub hash_seed: Uuid, // 236 - 252
   /// Default hash algorithm to use for directory hashes.
-  pub def_hash_version: u8, // 252 - 253
+  pub def_hash_version: HashVersion, // 252 - 253
   /// If this value is 0 or EXT3_JNL_BACKUP_BLOCKS (1), then the jnl_blocks
   /// field contains a duplicate copy of the inode’s i_block[] array and i_size.
   pub jnl_backup_type: u8, // 253 - 254
@@ -110,11 +111,11 @@ pub struct Superblock
   /// set.
   pub desc_size: u16, // 254 - 256
   /// Default mount options.
-  pub default_mount_opts: u32, // 256 - 260
+  pub default_mount_opts: DefaultMountOptions, // 256 - 260
   /// First metablock block group, if the meta_bg feature is enabled.
   pub first_meta_bg: u32, // 260 - 264
   /// When the filesystem was created, in seconds since the epoch.
-  pub mkfs_time: u32, // 264 - 268
+  pub mkfs_time: DateTime<Utc>, // 264 - 268
   /// Backup copy of the journal inode’s i_block[] array in the first 15
   /// elements and i_size_high and i_size in the 16th and 17th elements,
   /// respectively.
@@ -130,7 +131,7 @@ pub struct Superblock
   /// New inodes should reserve # bytes.
   pub want_extra_isize: u16, // 350 - 352
   /// Miscellaneous flags.
-  pub flags: u32, // 352 - 356
+  pub flags: Flags, // 352 - 356
   /// RAID stride. This is the number of logical blocks read from or written to
   /// the disk before moving to the next disk. This affects the placement of
   /// filesystem metadata, which will hopefully make RAID storage faster.
@@ -150,8 +151,7 @@ pub struct Superblock
   /// Size of a flexible block group is 2 ^ log_groups_per_flex.
   pub log_groups_per_flex: u8, // 372 - 373
   /// Metadata checksum algorithm type. The only valid value is 1 (crc32c).
-  pub checksum_type: u8, // 373 - 374
-  pub reserved_pad: u16, // 374 - 376
+  pub checksum_type: ChecksumType, // 373 - 374
   /// Number of KiB written to this filesystem over its lifetime.
   pub kbytes_written: u64, // 376 - 384
   /// inode number of active snapshot. (Not used in e2fsprogs/Linux.)
@@ -173,7 +173,7 @@ pub struct Superblock
   /// Number of block involved of first error.
   pub first_error_block: u64, // 416 - 424
   /// Name of function where the error happened.
-  pub first_error_func: [u8; 32], // 424 - 456
+  pub first_error_func: String, // 424 - 456
   /// Line number where error happened.
   pub first_error_line: u32, // 456 - 460
   /// Time of most recent error, in seconds since the epoch.
@@ -185,9 +185,9 @@ pub struct Superblock
   /// Number of block involved in most recent error.
   pub last_error_block: u64, // 472 - 480
   /// Name of function where the most recent error happened.
-  pub last_error_func: [u8; 32], // 480 - 512
+  pub last_error_func: String, // 480 - 512
   /// ASCIIZ string of mount options.
-  pub mount_opts: [u8; 64], // 512 - 576
+  pub mount_opts: String, // 512 - 576
   /// Inode number of user quota file.
   pub usr_quota_inum: u32, // 576 - 580
   /// Inode number of group quota file.
@@ -199,9 +199,9 @@ pub struct Superblock
   pub backup_bgs: [u32; 2], // 588 - 596
   /// Encryption algorithms in use. There can be up to four algorithms in use at
   /// any time.
-  pub encrypt_algos: [u8; 4], // 596 - 600
+  pub encrypt_algos: Vec<EncryptionMode>, // 596 - 600
   /// Salt for the string2key algorithm for encryption.
-  pub encrypt_pw_salt: [u8; 16], // 600 - 616
+  pub encrypt_pw_salt: Uuid, // 600 - 616
   /// Inode number of lost+found.
   pub lpf_ino: u32, // 616 - 620
   /// Inode that tracks project quotas.
@@ -221,8 +221,6 @@ pub struct Superblock
   pub first_error_time_hi: u8, // 632 - 633
   /// Upper 8 bits of the last_error_time_hi field.
   pub last_error_time_hi: u8, // 633 - 634
-  /// Zero padding.
-  pub pad: [u8; 2], // 634 - 636
   /// Filename charset encoding.
   pub encoding: u16, // 636 - 638
   /// Filename charset encoding flags.
@@ -274,30 +272,24 @@ impl Superblock
       feature_compat: FeatureCompat::from_raw(LittleEndian::read_u32(&block[92..96]))?,
       feature_incompat: FeatureIncompat::from_raw(LittleEndian::read_u32(&block[96..100]))?,
       feature_ro_compat: ReadOnlyFeatureCompat::from_raw(LittleEndian::read_u32(&block[100..104]))?,
-      uuid: LittleEndian::read_u128(&block[104..120]),
-      volume_name: String::from_utf8(block[120..136].to_vec())?,
-      last_mounted: String::from_utf8(block[136..200].to_vec())?,
+      uuid: Uuid::from(LittleEndian::read_u128(&block[104..120])),
+      volume_name: string_from_slice(&block[120..136]),
+      last_mounted: string_from_slice(&block[136..200]),
       algorithm_usage_bitmap: LittleEndian::read_u32(&block[200..204]),
       prealloc_blocks: u8::from_le(block[204]),
       prealloc_dir_blocks: u8::from_le(block[205]),
       reserved_gdt_blocks: LittleEndian::read_u16(&block[206..208]),
-      journal_uuid: from_le_bytes_to_u8_array(&block[208..224])
-        .as_slice()
-        .try_into()
-        .unwrap(),
+      journal_uuid: Uuid::from(LittleEndian::read_u128(&block[208..224])),
       journal_inum: LittleEndian::read_u32(&block[224..228]),
       journal_dev: LittleEndian::read_u32(&block[228..232]),
       last_orphan: LittleEndian::read_u32(&block[232..236]),
-      hash_seed: from_le_bytes_to_u32_array(&block[236..252])
-        .as_slice()
-        .try_into()
-        .unwrap(),
-      def_hash_version: u8::from_le(block[252]),
+      hash_seed: Uuid::from(LittleEndian::read_u128(&block[236..252])),
+      def_hash_version: HashVersion::from_raw(u8::from_le(block[252]))?,
       jnl_backup_type: u8::from_le(block[253]),
       desc_size: LittleEndian::read_u16(&block[254..256]),
-      default_mount_opts: LittleEndian::read_u32(&block[256..260]),
+      default_mount_opts: DefaultMountOptions::from_raw(LittleEndian::read_u32(&block[256..260]))?,
       first_meta_bg: LittleEndian::read_u32(&block[260..264]),
-      mkfs_time: LittleEndian::read_u32(&block[264..268]),
+      mkfs_time: Utc.timestamp(LittleEndian::read_u32(&block[264..268]).into(), 0),
       jnl_blocks: from_le_bytes_to_u32_array(&block[268..336])
         .as_slice()
         .try_into()
@@ -307,14 +299,13 @@ impl Superblock
       free_blocks_count_hi: LittleEndian::read_u32(&block[344..348]),
       min_extra_isize: LittleEndian::read_u16(&block[348..350]),
       want_extra_isize: LittleEndian::read_u16(&block[350..352]),
-      flags: LittleEndian::read_u32(&block[352..356]),
+      flags: Flags::from_raw(LittleEndian::read_u32(&block[352..356]))?,
       raid_stride: LittleEndian::read_u16(&block[356..358]),
       mmp_interval: LittleEndian::read_u16(&block[358..360]),
       mmp_block: LittleEndian::read_u64(&block[360..368]),
       raid_stripe_width: LittleEndian::read_u32(&block[368..372]),
       log_groups_per_flex: u8::from_le(block[372]),
-      checksum_type: u8::from_le(block[373]),
-      reserved_pad: LittleEndian::read_u16(&block[374..376]),
+      checksum_type: ChecksumType::from_raw(u8::from_le(block[373]))?,
       kbytes_written: LittleEndian::read_u64(&block[376..384]),
       snapshot_inum: LittleEndian::read_u32(&block[384..388]),
       snapshot_id: LittleEndian::read_u32(&block[388..392]),
@@ -324,23 +315,14 @@ impl Superblock
       first_error_time: LittleEndian::read_u32(&block[408..412]),
       first_error_ino: LittleEndian::read_u32(&block[412..416]),
       first_error_block: LittleEndian::read_u64(&block[416..424]),
-      first_error_func: from_le_bytes_to_u8_array(&block[424..456])
-        .as_slice()
-        .try_into()
-        .unwrap(),
+      first_error_func: string_from_slice(&block[424..456]),
       first_error_line: LittleEndian::read_u32(&block[456..460]),
       last_error_time: LittleEndian::read_u32(&block[460..464]),
       last_error_ino: LittleEndian::read_u32(&block[464..468]),
       last_error_line: LittleEndian::read_u32(&block[468..472]),
       last_error_block: LittleEndian::read_u64(&block[472..480]),
-      last_error_func: from_le_bytes_to_u8_array(&block[480..512])
-        .as_slice()
-        .try_into()
-        .unwrap(),
-      mount_opts: from_le_bytes_to_u8_array(&block[512..576])
-        .as_slice()
-        .try_into()
-        .unwrap(),
+      last_error_func: string_from_slice(&block[480..512]),
+      mount_opts: string_from_slice(&block[512..576]),
       usr_quota_inum: LittleEndian::read_u32(&block[576..580]),
       grp_quota_inum: LittleEndian::read_u32(&block[580..584]),
       overhead_blocks: LittleEndian::read_u32(&block[584..588]),
@@ -348,14 +330,8 @@ impl Superblock
         .as_slice()
         .try_into()
         .unwrap(),
-      encrypt_algos: from_le_bytes_to_u8_array(&block[596..600])
-        .as_slice()
-        .try_into()
-        .unwrap(),
-      encrypt_pw_salt: from_le_bytes_to_u8_array(&block[600..616])
-        .as_slice()
-        .try_into()
-        .unwrap(),
+      encrypt_algos: EncryptionMode::from_modes(&block[596..600]),
+      encrypt_pw_salt: Uuid::from(LittleEndian::read_u128(&block[600..616])),
       lpf_ino: LittleEndian::read_u32(&block[616..620]),
       prj_quota_inum: LittleEndian::read_u32(&block[620..624]),
       checksum_seed: LittleEndian::read_u32(&block[624..628]),
@@ -365,10 +341,6 @@ impl Superblock
       lastcheck_hi: u8::from_le(block[631]),
       first_error_time_hi: u8::from_le(block[632]),
       last_error_time_hi: u8::from_le(block[633]),
-      pad: from_le_bytes_to_u8_array(&block[634..636])
-        .as_slice()
-        .try_into()
-        .unwrap(),
       encoding: LittleEndian::read_u16(&block[636..638]),
       encoding_flags: LittleEndian::read_u16(&block[638..640]),
       checksum: LittleEndian::read_u32(&block[1020..1024]),
@@ -389,6 +361,11 @@ impl Superblock
   pub fn cluster_size(&self) -> u32
   {
     2u32.pow(10 + self.log_cluster_size)
+  }
+
+  pub fn flexible_block_group(&self) -> u8
+  {
+    2u8.pow(self.log_groups_per_flex.into())
   }
 }
 
@@ -429,18 +406,18 @@ impl std::fmt::Display for Superblock
        feature_compat          {}\n\
        feature_incompat        {}\n\
        feature_ro_compat       {}\n\
-       uuid                    {:#X}\n\
+       uuid                    {}\n\
        volume_name             {}\n\
        last_mounted            {}\n\
        algorithm_usage_bitmap  {}\n\
        prealloc_blocks         {}\n\
        prealloc_dir_blocks     {}\n\
        reserved_gdt_blocks     {}\n\
-       journal_uuid            {:?}\n\
+       journal_uuid            {}\n\
        journal_inum            {}\n\
        journal_dev             {}\n\
        last_orphan             {}\n\
-       hash_seed               {:?}\n\
+       hash_seed               {}\n\
        def_hash_version        {}\n\
        jnl_backup_type         {}\n\
        desc_size               {}\n\
@@ -460,7 +437,6 @@ impl std::fmt::Display for Superblock
        raid_stripe_width       {}\n\
        log_groups_per_flex     {}\n\
        checksum_type           {}\n\
-       reserved_pad            {}\n\
        kbytes_written          {}\n\
        snapshot_inum           {}\n\
        snapshot_id             {}\n\
@@ -470,20 +446,20 @@ impl std::fmt::Display for Superblock
        first_error_time        {}\n\
        first_error_ino         {}\n\
        first_error_block       {}\n\
-       first_error_func        {:?}\n\
+       first_error_func        {}\n\
        first_error_line        {}\n\
        last_error_time         {}\n\
        last_error_ino          {}\n\
        last_error_line         {}\n\
        last_error_block        {}\n\
-       last_error_func         {:?}\n\
-       mount_opts              {:?}\n\
+       last_error_func         {}\n\
+       mount_opts              {}\n\
        usr_quota_inum          {}\n\
        grp_quota_inum          {}\n\
        overhead_blocks         {}\n\
        backup_bgs              {:?}\n\
        encrypt_algos           {:?}\n\
-       encrypt_pw_salt         {:?}\n\
+       encrypt_pw_salt         {}\n\
        lpf_ino                 {}\n\
        prj_quota_inum          {}\n\
        checksum_seed           {}\n\
@@ -493,10 +469,9 @@ impl std::fmt::Display for Superblock
        lastcheck_hi            {}\n\
        first_error_time_hi     {}\n\
        last_error_time_hi      {}\n\
-       pad                     {:?}\n\
        encoding                {}\n\
        encoding_flags          {}\n\
-       checksum                {}",
+       checksum                {:#X}",
       self.inodes_count,
       self.blocks_count_lo,
       self.r_blocks_count_lo,
@@ -559,7 +534,6 @@ impl std::fmt::Display for Superblock
       self.raid_stripe_width,
       self.log_groups_per_flex,
       self.checksum_type,
-      self.reserved_pad,
       self.kbytes_written,
       self.snapshot_inum,
       self.snapshot_id,
@@ -592,17 +566,11 @@ impl std::fmt::Display for Superblock
       self.lastcheck_hi,
       self.first_error_time_hi,
       self.last_error_time_hi,
-      self.pad,
       self.encoding,
       self.encoding_flags,
       self.checksum,
     )
   }
-}
-
-fn from_le_bytes_to_u8_array(array: &[u8]) -> Vec<u8>
-{
-  array.iter().map(|&e| u8::from_le(e)).collect::<Vec<u8>>()
 }
 
 fn from_le_bytes_to_u32_array(array: &[u8]) -> Vec<u32>
@@ -613,6 +581,23 @@ fn from_le_bytes_to_u32_array(array: &[u8]) -> Vec<u32>
     u32_vec.push(LittleEndian::read_u32(&array[i * 4..i * 4 + 4]))
   }
   u32_vec
+}
+
+fn string_from_slice(s: &[u8]) -> String
+{
+  let mut output = String::new();
+  for &c in s {
+    if c != 0 {
+      output.push(c as char);
+    } else {
+      break;
+    }
+  }
+  if output.len() == 0 {
+    String::from("<none>")
+  } else {
+    output
+  }
 }
 
 #[derive(Debug)]
@@ -654,6 +639,8 @@ impl std::fmt::Display for State
     let mut output = String::new();
     if self.cleanly_unmounted {
       output.push_str("clean, ");
+    } else {
+      output.push_str("not clean, ");
     }
     if self.errors_detected {
       output.push_str("errors detected, ");
@@ -1164,6 +1151,312 @@ impl std::fmt::Display for ReadOnlyFeatureCompat
 }
 
 #[derive(Debug)]
+pub enum HashVersion
+{
+  Legacy,
+  HalfMD4,
+  Tea,
+  LegacyUnsigned,
+  HalfMD4Unsigned,
+  TeaUnsigned,
+}
+
+impl HashVersion
+{
+  const LEGACY: u8 = 0;
+  const HALF_MD4: u8 = 1;
+  const TEA: u8 = 2;
+  const LEGACY_UNSIGNED: u8 = 3;
+  const HALF_MD4_UNSIGNED: u8 = 4;
+  const TEA_UNSIGNED: u8 = 5;
+
+  fn from_raw(version: u8) -> Result<Self, UnexpectedValue>
+  {
+    match version {
+      Self::LEGACY => Ok(Self::Legacy),
+      Self::HALF_MD4 => Ok(Self::HalfMD4),
+      Self::TEA => Ok(Self::Tea),
+      Self::LEGACY_UNSIGNED => Ok(Self::LegacyUnsigned),
+      Self::HALF_MD4_UNSIGNED => Ok(Self::HalfMD4Unsigned),
+      Self::TEA_UNSIGNED => Ok(Self::TeaUnsigned),
+      _ => Err(UnexpectedValue::HashVersion(version)),
+    }
+  }
+}
+
+impl std::fmt::Display for HashVersion
+{
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
+  {
+    write!(
+      f,
+      "{}",
+      match self {
+        Self::Legacy => "Legacy",
+        Self::HalfMD4 => "Half MD4",
+        Self::Tea => "Tea",
+        Self::LegacyUnsigned => "Legacy, unsigned",
+        Self::HalfMD4Unsigned => "Half MD4, unsigned",
+        Self::TeaUnsigned => "Tea, unsigned",
+      }
+    )
+  }
+}
+
+#[derive(Debug)]
+pub struct DefaultMountOptions
+{
+  debug: bool,
+  bsdgroups: bool,
+  xattr_user: bool,
+  acl: bool,
+  uid16: bool,
+  jmode_data: bool,
+  jmode_ordered: bool,
+  jmode_wback: bool,
+  nobarrier: bool,
+  block_validity: bool,
+  discard: bool,
+  nodealloc: bool,
+}
+
+impl DefaultMountOptions
+{
+  const DEBUG: u32 = 0x1;
+  const BSDGROUPS: u32 = 0x2;
+  const XATTR_USER: u32 = 0x4;
+  const ACL: u32 = 0x8;
+  const UID16: u32 = 0x10;
+  const JMODE_DATA: u32 = 0x20;
+  const JMODE_ORDERED: u32 = 0x40;
+  const JMODE_WBACK: u32 = 0x60;
+  const NOBARRIER: u32 = 0x100;
+  const BLOCK_VALIDITY: u32 = 0x200;
+  const DISCARD: u32 = 0x400;
+  const NODEALLOC: u32 = 0x800;
+
+  fn from_raw(opts: u32) -> Result<Self, UnexpectedValue>
+  {
+    let opts_struct = Self {
+      debug: opts & Self::DEBUG != 0,
+      bsdgroups: opts & Self::BSDGROUPS != 0,
+      xattr_user: opts & Self::XATTR_USER != 0,
+      acl: opts & Self::ACL != 0,
+      uid16: opts & Self::UID16 != 0,
+      jmode_data: opts & Self::JMODE_DATA != 0,
+      jmode_ordered: opts & Self::JMODE_ORDERED != 0,
+      jmode_wback: opts & Self::JMODE_WBACK != 0,
+      nobarrier: opts & Self::NOBARRIER != 0,
+      block_validity: opts & Self::BLOCK_VALIDITY != 0,
+      discard: opts & Self::DISCARD != 0,
+      nodealloc: opts & Self::NODEALLOC != 0,
+    };
+    if opts
+      & !(Self::DEBUG
+        | Self::BSDGROUPS
+        | Self::XATTR_USER
+        | Self::ACL
+        | Self::UID16
+        | Self::JMODE_DATA
+        | Self::JMODE_ORDERED
+        | Self::JMODE_WBACK
+        | Self::NOBARRIER
+        | Self::BLOCK_VALIDITY
+        | Self::DISCARD
+        | Self::NODEALLOC)
+      != 0
+    {
+      Err(UnexpectedValue::DefaultMountOptions(opts))
+    } else {
+      Ok(opts_struct)
+    }
+  }
+}
+
+impl std::fmt::Display for DefaultMountOptions
+{
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
+  {
+    let mut output = String::new();
+    if self.debug {
+      output.push_str("debug ");
+    }
+    if self.bsdgroups {
+      output.push_str("bsdgroups ");
+    }
+    if self.xattr_user {
+      output.push_str("xattr_user ");
+    }
+    if self.acl {
+      output.push_str("acl ");
+    }
+    if self.uid16 {
+      output.push_str("uid16 ");
+    }
+    if self.jmode_data {
+      output.push_str("jmode_data ");
+    }
+    if self.jmode_ordered {
+      output.push_str("jmode_ordered ");
+    }
+    if self.jmode_wback {
+      output.push_str("jmode_wback ");
+    }
+    if self.nobarrier {
+      output.push_str("nobarrier ");
+    }
+    if self.block_validity {
+      output.push_str("block_validity ");
+    }
+    if self.discard {
+      output.push_str("discard ");
+    }
+    if self.nodealloc {
+      output.push_str("nodealloc ");
+    }
+    output.pop();
+    write!(f, "{}", output)
+  }
+}
+
+#[derive(Debug)]
+pub struct Flags
+{
+  signed_directory_hash: bool,
+  unsigned_directory_hash: bool,
+  test_filesystem: bool,
+}
+
+impl Flags
+{
+  const SIGNED_DIRECTORY_HASH: u32 = 0x1;
+  const UNSIGNED_DIRECTORY_HASH: u32 = 0x2;
+  const TEST_FILESYSTEM: u32 = 0x4;
+
+  fn from_raw(flags: u32) -> Result<Self, UnexpectedValue>
+  {
+    let flags_struct = Self {
+      signed_directory_hash: flags & Self::SIGNED_DIRECTORY_HASH != 0,
+      unsigned_directory_hash: flags & Self::UNSIGNED_DIRECTORY_HASH != 0,
+      test_filesystem: flags & Self::TEST_FILESYSTEM != 0,
+    };
+    if flags
+      & !(Self::SIGNED_DIRECTORY_HASH | Self::UNSIGNED_DIRECTORY_HASH | Self::TEST_FILESYSTEM)
+      != 0
+    {
+      Err(UnexpectedValue::Flags(flags))
+    } else {
+      Ok(flags_struct)
+    }
+  }
+}
+
+impl std::fmt::Display for Flags
+{
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
+  {
+    let mut output = String::new();
+    if self.signed_directory_hash {
+      output.push_str("signed_directory_hash ");
+    }
+    if self.unsigned_directory_hash {
+      output.push_str("unsigned_directory_hash ");
+    }
+    if self.test_filesystem {
+      output.push_str("test_filesystem ");
+    }
+    output.pop();
+    write!(f, "{}", output)
+  }
+}
+
+#[derive(Debug)]
+pub enum ChecksumType
+{
+  Crc32c,
+}
+
+impl ChecksumType
+{
+  const CRC32C: u8 = 1;
+
+  fn from_raw(chcksm: u8) -> Result<Self, UnexpectedValue>
+  {
+    match chcksm {
+      Self::CRC32C => Ok(Self::Crc32c),
+      _ => Err(UnexpectedValue::ChecksumType(chcksm)),
+    }
+  }
+}
+
+impl std::fmt::Display for ChecksumType
+{
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
+  {
+    write!(
+      f,
+      "{}",
+      match self {
+        Self::Crc32c => "crc32c",
+      }
+    )
+  }
+}
+
+#[derive(Debug)]
+pub enum EncryptionMode
+{
+  Invalid,
+  AES256XTS,
+  AES256GCM,
+  AES256CBC,
+}
+
+impl EncryptionMode
+{
+  const INVALID: u8 = 0;
+  const AES_256_XTS: u8 = 1;
+  const AES_256_GCM: u8 = 2;
+  const AES_256_CBC: u8 = 3;
+
+  fn from_raw(mode: u8) -> Self
+  {
+    match mode {
+      Self::INVALID => Self::Invalid,
+      Self::AES_256_XTS => Self::AES256XTS,
+      Self::AES_256_GCM => Self::AES256GCM,
+      Self::AES_256_CBC => Self::AES256CBC,
+      _ => Self::Invalid,
+    }
+  }
+
+  fn from_modes(modes: &[u8]) -> Vec<EncryptionMode>
+  {
+    modes
+      .iter()
+      .map(|&m| EncryptionMode::from_raw(m))
+      .collect::<Vec<EncryptionMode>>()
+  }
+}
+
+impl std::fmt::Display for EncryptionMode
+{
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
+  {
+    write!(
+      f,
+      "{}",
+      match self {
+        Self::Invalid => "Invalid",
+        Self::AES256XTS => "Aes 256 XTS",
+        Self::AES256GCM => "Aes 256 GCM",
+        Self::AES256CBC => "Aes 256 CBC",
+      }
+    )
+  }
+}
+
+#[derive(Debug)]
 pub enum UnexpectedValue
 {
   State(u16),
@@ -1173,6 +1466,10 @@ pub enum UnexpectedValue
   FeatureCompat(u32),
   FeatureIncompat(u32),
   ReadOnlyFeatureCompat(u32),
+  HashVersion(u8),
+  DefaultMountOptions(u32),
+  Flags(u32),
+  ChecksumType(u8),
 }
 
 impl std::fmt::Display for UnexpectedValue
@@ -1195,6 +1492,11 @@ impl std::fmt::Display for UnexpectedValue
           "Unknown read-only feature compat flag value: {:#034b}",
           feature
         ),
+        Self::HashVersion(version) => format!("Unknown hash version value: {}", version),
+        Self::DefaultMountOptions(opts) =>
+          format!("Unknown default mount options flag value: {:#034b}", opts),
+        Self::Flags(flags) => format!("Unknown flags flag value: {:#034b}", flags),
+        Self::ChecksumType(chcksm) => format!("Unknown checksum type value: {}", chcksm),
       }
     )
   }

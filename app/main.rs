@@ -24,4 +24,5 @@ fn main()
   println!("\n{}\n", sb);
   println!("block size: {}", sb.block_size());
   println!("cluseter size: {}", sb.cluster_size());
+  println!("flexible_block_group: {}", sb.flexible_block_group());
 }
