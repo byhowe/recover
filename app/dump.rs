@@ -16,10 +16,16 @@ impl Dump
       eprintln!("An IO error has occurred: {}", err);
       std::process::exit(1);
     });
-    let sb = Superblock::new(img, false).unwrap_or_else(|err| {
+    let sb = Superblock::new(img).unwrap_or_else(|err| {
       eprintln!("Superblock error has occured: {}", err);
       std::process::exit(1);
     });
+
+    if let Some(err) = sb.check_signature() {
+      eprintln!("{}", err);
+      eprintln!("This dump information may not be accurate.");
+    }
+
     println!("{}", sb);
   }
 

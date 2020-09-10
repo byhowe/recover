@@ -1,3 +1,3 @@
 pub mod superblock;
 
-pub use superblock::{Superblock, SuperblockError};
+pub use superblock::Superblock;

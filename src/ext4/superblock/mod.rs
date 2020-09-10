@@ -25,4 +25,4 @@ pub use hash_version::HashVersion;
 pub(crate) use raw::SuperblockRaw;
 pub use revision_level::RevisionLevel;
 pub use state::State;
-pub use superblock::{Superblock, SuperblockError};
+pub use superblock::{Error, Superblock};

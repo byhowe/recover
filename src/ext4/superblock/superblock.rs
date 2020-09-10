@@ -240,21 +240,22 @@ impl Superblock
   pub const GOOD_OLD_REV: RevisionLevel = RevisionLevel::Original;
   pub const GOOD_OLD_INODE_SIZE: u16 = 128;
 
-  pub fn new<R>(mut inner: R, ignore_magic: bool) -> Result<Self, SuperblockError>
+  pub fn new<R>(mut inner: R) -> Result<Self, Error>
   where
     R: io::Read,
   {
-    let sb: Superblock = {
-      let mut block: [u8; 1024] = [0; 1024];
-      inner.read_exact(&mut block)?;
-      let raw: SuperblockRaw = block.into();
-      raw.try_into()?
-    };
+    let mut block: [u8; 1024] = [0; 1024];
+    inner.read_exact(&mut block)?;
+    let raw: SuperblockRaw = block.into();
+    Ok(raw.try_into()?)
+  }
 
-    if !ignore_magic && sb.magic == Self::MAGIC_SIGNATURE {
-      Ok(sb)
+  pub fn check_signature(&self) -> Option<Error>
+  {
+    if self.magic == Self::MAGIC_SIGNATURE {
+      None
     } else {
-      Err(SuperblockError::Signature(sb.magic))
+      Some(Error::Signature(self.magic))
     }
   }
 
@@ -329,7 +330,7 @@ impl Superblock
 
 impl TryFrom<SuperblockRaw> for Superblock
 {
-  type Error = SuperblockError;
+  type Error = Error;
 
   fn try_from(raw: SuperblockRaw) -> Result<Self, Self::Error>
   {
@@ -436,14 +437,14 @@ impl TryFrom<SuperblockRaw> for Superblock
 }
 
 #[derive(Debug)]
-pub enum SuperblockError
+pub enum Error
 {
   IOError(io::Error),
   StringError(std::string::FromUtf8Error),
   Signature(u16),
 }
 
-impl From<io::Error> for SuperblockError
+impl From<io::Error> for Error
 {
   fn from(e: io::Error) -> Self
   {
@@ -451,7 +452,7 @@ impl From<io::Error> for SuperblockError
   }
 }
 
-impl From<std::string::FromUtf8Error> for SuperblockError
+impl From<std::string::FromUtf8Error> for Error
 {
   fn from(error: std::string::FromUtf8Error) -> Self
   {
@@ -459,7 +460,7 @@ impl From<std::string::FromUtf8Error> for SuperblockError
   }
 }
 
-impl std::fmt::Display for SuperblockError
+impl std::fmt::Display for Error
 {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
   {
