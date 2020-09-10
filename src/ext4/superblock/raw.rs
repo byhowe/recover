@@ -106,18 +106,18 @@ pub(crate) struct SuperblockRaw
   pub(crate) checksum: u32,
 }
 
-impl From<[u8; 1024]> for SuperblockRaw
+impl From<&[u8; 1024]> for SuperblockRaw
 {
   #[cfg(target_endian = "little")]
-  fn from(block: [u8; 1024]) -> Self
+  fn from(block: &[u8; 1024]) -> Self
   {
-    unsafe { std::mem::transmute(block) }
+    unsafe { std::mem::transmute(*block) }
   }
 
   #[cfg(target_endian = "big")]
-  fn from(block: [u8; 1024]) -> Self
+  fn from(block: &[u8; 1024]) -> Self
   {
-    let mut raw: SuperblockRaw = unsafe { std::mem::transmute(block) };
+    let mut raw: SuperblockRaw = unsafe { std::mem::transmute(*block) };
     raw.inodes_count = u32::from_le(raw.inodes_count);
     raw.blocks_count_lo = u32::from_le(raw.blocks_count_lo);
     raw.r_blocks_count_lo = u32::from_le(raw.r_blocks_count_lo);

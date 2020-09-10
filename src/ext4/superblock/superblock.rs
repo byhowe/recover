@@ -246,8 +246,7 @@ impl Superblock
   {
     let mut block: [u8; 1024] = [0; 1024];
     inner.read_exact(&mut block)?;
-    let raw: SuperblockRaw = block.into();
-    Ok(raw.try_into()?)
+    Ok(SuperblockRaw::from(&block).try_into()?)
   }
 
   pub fn check_signature(&self) -> Option<Error>
