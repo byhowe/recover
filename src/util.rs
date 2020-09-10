@@ -34,15 +34,15 @@ pub fn get_datetime(datetime: DateTime<Utc>) -> String
 pub fn kbytes_to_human_readable(kbytes: u64) -> String
 {
   if kbytes < 2u64.pow(13) {
-    format!("{} kB\n", kbytes)
+    format!("{} kB", kbytes)
   } else if kbytes < 2u64.pow(23) {
-    format!("{} MB\n", (kbytes + 2u64.pow(9)) >> 10)
+    format!("{} MB", (kbytes + 2u64.pow(9)) >> 10)
   } else if kbytes < 2u64.pow(33) {
-    format!("{} GB\n", (kbytes + 2u64.pow(19)) >> 20)
+    format!("{} GB", (kbytes + 2u64.pow(19)) >> 20)
   } else if kbytes < 2u64.pow(43) {
-    format!("{} TB\n", (kbytes + 2u64.pow(29)) >> 30)
+    format!("{} TB", (kbytes + 2u64.pow(29)) >> 30)
   } else {
-    format!("{} PB\n", (kbytes + 2u64.pow(39)) >> 40)
+    format!("{} PB", (kbytes + 2u64.pow(39)) >> 40)
   }
 }
 

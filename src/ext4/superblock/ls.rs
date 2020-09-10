@@ -9,126 +9,121 @@ impl std::fmt::Display for Superblock
       ((self.inodes_per_group * self.get_inode_size() as u32) + self.get_block_size() - 1)
         / self.get_block_size();
 
-    write!(
+    writeln!(
       f,
-      "Filesystem volume name:   {}\n\
-       Last mounted on:          {}\n\
-       Filesystem UUID:          {}\n\
-       Filesystem magic number:  {:#X}\n\
-       Filesystem revision #:    {}\n\
-       Filesystem features:      {}\n\
-       Filesystem flags:         {}\n\
-       Default mount options:    {}\n\
-       Mount options:            {}\n\
-       Filesystem state:         {}\n\
-       Errors behaviour:         {}\n\
-       Filesystem OS type:       {}\n\
-       Inode count:              {}\n\
-       Block count:              {}\n\
-       Reserved block count:     {}\n",
-      crate::util::get_string(&self.volume_name),
-      crate::util::get_string(&self.last_mounted),
-      self.uuid,
-      self.magic,
-      self.rev_level,
-      crate::util::get_string_list(&self.get_features()),
-      self.flags,
-      self.default_mount_opts,
-      crate::util::get_string(&self.mount_opts),
-      self.state,
-      self.errors,
-      self.creator_os,
-      self.inodes_count,
-      self.get_blocks_count(),
+      "Filesystem volume name:   {}",
+      crate::util::get_string(&self.volume_name)
+    )?;
+    writeln!(
+      f,
+      "Last mounted on:          {}",
+      crate::util::get_string(&self.last_mounted)
+    )?;
+    writeln!(f, "Filesystem UUID:          {}", self.uuid)?;
+    writeln!(f, "Filesystem magic number:  {:#X}", self.magic)?;
+    writeln!(f, "Filesystem revision #:    {}", self.rev_level)?;
+    writeln!(
+      f,
+      "Filesystem features:      {}",
+      crate::util::get_string_list(&self.get_features())
+    )?;
+    writeln!(f, "Filesystem flags:         {}", self.flags)?;
+    writeln!(f, "Default mount options:    {}", self.default_mount_opts)?;
+    writeln!(
+      f,
+      "Mount options:            {}",
+      crate::util::get_string(&self.mount_opts)
+    )?;
+    writeln!(f, "Filesystem state:         {}", self.state)?;
+    writeln!(f, "Errors behaviour:         {}", self.errors)?;
+    writeln!(f, "Filesystem OS type:       {}", self.creator_os)?;
+    writeln!(f, "Inode count:              {}", self.inodes_count)?;
+    writeln!(f, "Block count:              {}", self.get_blocks_count())?;
+    writeln!(
+      f,
+      "Reserved block count:     {}",
       self.get_reserved_blocks_count()
     )?;
 
     if self.overhead_blocks != 0 {
-      write!(f, "Overhead clusters:        {}\n", self.overhead_blocks)?;
+      writeln!(f, "Overhead clusters:        {}", self.overhead_blocks)?;
     }
 
-    write!(
+    writeln!(
       f,
-      "Free blocks:              {}\n\
-       Free inodes:              {}\n\
-       First block:              {}\n\
-       Block size:               {}\n\
-       ",
-      self.get_free_blocks_count(),
-      self.free_inodes_count,
-      self.first_data_block,
-      self.get_block_size()
+      "Free blocks:              {}",
+      self.get_free_blocks_count()
     )?;
+    writeln!(f, "Free inodes:              {}", self.free_inodes_count)?;
+    writeln!(f, "First block:              {}", self.first_data_block)?;
+    writeln!(f, "Block size:               {}", self.get_block_size())?;
 
     if self.feature_ro_compat.bigalloc {
-      write!(f, "Cluster size:             {}\n", self.get_cluster_size())?;
+      writeln!(f, "Cluster size:             {}", self.get_cluster_size())?;
     } else {
-      write!(f, "Fragment size:            {}\n", self.get_cluster_size())?;
+      writeln!(f, "Fragment size:            {}", self.get_cluster_size())?;
     }
 
     if self.feature_incompat.bit64 {
-      write!(f, "Group descriptor size:    {}\n", self.desc_size)?;
+      writeln!(f, "Group descriptor size:    {}", self.desc_size)?;
     }
 
     if self.reserved_gdt_blocks != 0 {
-      write!(
-        f,
-        "Reserved GDT blocks:      {}\n",
-        self.reserved_gdt_blocks
-      )?;
+      writeln!(f, "Reserved GDT blocks:      {}", self.reserved_gdt_blocks)?;
     }
 
-    write!(f, "Blocks per group:         {}\n", self.blocks_per_group)?;
+    writeln!(f, "Blocks per group:         {}", self.blocks_per_group)?;
 
     if self.feature_ro_compat.bigalloc {
-      write!(f, "Clusters per group:       {}\n", self.clusters_per_group)?;
+      writeln!(f, "Clusters per group:       {}", self.clusters_per_group)?;
     } else {
-      write!(f, "Fragments per group:      {}\n", self.clusters_per_group)?;
+      writeln!(f, "Fragments per group:      {}", self.clusters_per_group)?;
     }
 
-    write!(
-      f,
-      "Inodes per group:         {}\n\
-       Inode blocks per group:   {}\n",
-      self.inodes_per_group, inode_blocks_per_group
-    )?;
+    writeln!(f, "Inodes per group:         {}", self.inodes_per_group)?;
+    writeln!(f, "Inode blocks per group:   {}", inode_blocks_per_group)?;
 
     if self.raid_stride != 0 {
-      write!(f, "RAID stride:              {}\n", self.raid_stride)?;
+      writeln!(f, "RAID stride:              {}", self.raid_stride)?;
     }
 
     if self.raid_stripe_width != 0 {
-      write!(f, "RAID stripe width:        {}\n", self.raid_stripe_width)?;
+      writeln!(f, "RAID stripe width:        {}", self.raid_stripe_width)?;
     }
 
     if self.first_meta_bg != 0 {
-      write!(f, "First meta block group:   {}\n", self.first_meta_bg)?;
+      writeln!(f, "First meta block group:   {}", self.first_meta_bg)?;
     }
 
     if self.log_groups_per_flex != 0 {
-      write!(
-        f,
-        "Flex block group size:    {}\n",
-        self.log_groups_per_flex
-      )?;
+      writeln!(f, "Flex block group size:    {}", self.log_groups_per_flex)?;
     }
 
-    write!(
+    writeln!(
       f,
-      "Filesystem created:       {}\n\
-       Last mount time:          {}\n\
-       Last write time:          {}\n\
-       Mount count:              {}\n\
-       Maximum mount count:      {}\n\
-       Last checked:             {}\n\
-       Check interval:           {} second{} ({})\n\
-       ",
-      crate::util::get_datetime(self.mkfs_time),
-      crate::util::get_datetime(self.mtime),
-      crate::util::get_datetime(self.wtime),
-      self.mnt_count,
-      self.max_mnt_count,
-      crate::util::get_datetime(self.lastcheck),
+      "Filesystem created:       {}",
+      crate::util::get_datetime(self.mkfs_time)
+    )?;
+    writeln!(
+      f,
+      "Last mount time:          {}",
+      crate::util::get_datetime(self.mtime)
+    )?;
+    writeln!(
+      f,
+      "Last write time:          {}",
+      crate::util::get_datetime(self.wtime)
+    )?;
+    writeln!(f, "Mount count:              {}", self.mnt_count)?;
+    writeln!(f, "Maximum mount count:      {}", self.max_mnt_count)?;
+    writeln!(
+      f,
+      "Last checked:             {}",
+      crate::util::get_datetime(self.lastcheck)
+    )?;
+    writeln!(
+      f,
+      "Check interval:           {} second{} ({})",
       self.checkinterval.num_seconds(),
       if self.checkinterval.num_seconds() == 1 {
         ""
@@ -139,7 +134,7 @@ impl std::fmt::Display for Superblock
     )?;
 
     if !self.checkinterval.is_zero() {
-      write!(
+      writeln!(
         f,
         "Next check after:         {}",
         self.lastcheck + self.checkinterval
@@ -147,66 +142,68 @@ impl std::fmt::Display for Superblock
     }
 
     if self.kbytes_written != 0 {
-      write!(
+      writeln!(
         f,
         "Lifetime writes:          {}",
         crate::util::kbytes_to_human_readable(self.kbytes_written)
       )?;
     }
 
-    write!(
+    writeln!(
       f,
-      "Reserved blocks uid:      {}\n\
-       Reserved blocks gid:      {}\n",
-      crate::util::get_user(self.def_resuid),
+      "Reserved blocks uid:      {}",
+      crate::util::get_user(self.def_resuid)
+    )?;
+    writeln!(
+      f,
+      "Reserved blocks gid:      {}",
       crate::util::get_group(self.def_resgid)
     )?;
 
     if self.rev_level == RevisionLevel::Dynamic {
-      write!(
-        f,
-        "First inode:              {}\n\
-         Inode size:               {}\n",
-        self.first_ino, self.inode_size
-      )?;
+      writeln!(f, "First inode:              {}", self.first_ino)?;
+      writeln!(f, "Inode size:               {}", self.inode_size)?;
       if self.min_extra_isize != 0 {
-        write!(f, "Required extra isize:     {}\n", self.min_extra_isize)?;
+        writeln!(f, "Required extra isize:     {}", self.min_extra_isize)?;
       }
       if self.want_extra_isize != 0 {
-        write!(f, "Desired extra isize:      {}\n", self.want_extra_isize)?;
+        writeln!(f, "Desired extra isize:      {}", self.want_extra_isize)?;
       }
     }
 
     if !self.journal_uuid.is_null() {
-      write!(f, "Journal UUID:             {}\n", self.journal_uuid)?;
+      writeln!(f, "Journal UUID:             {}", self.journal_uuid)?;
     }
 
     if self.journal_inum != 0 {
-      write!(f, "Journal inode:            {}\n", self.journal_inum)?;
+      writeln!(f, "Journal inode:            {}", self.journal_inum)?;
     }
 
     if self.journal_dev != 0 {
-      write!(f, "Journal device:           {:#06X}\n", self.journal_dev)?;
+      writeln!(f, "Journal device:           {:#06X}", self.journal_dev)?;
     }
 
     if self.last_orphan != 0 {
-      write!(f, "First orphan inode:       {}\n", self.last_orphan)?;
+      writeln!(f, "First orphan inode:       {}", self.last_orphan)?;
     }
 
     if self.feature_compat.dir_index || self.def_hash_version != HashVersion::Legacy {
-      write!(f, "Default directory hash:   {}\n", self.def_hash_version)?;
+      writeln!(f, "Default directory hash:   {}", self.def_hash_version)?;
     }
 
     if !self.hash_seed.is_null() {
-      write!(f, "Directory Hash Seed:      {}\n", self.hash_seed)?;
+      writeln!(f, "Directory Hash Seed:      {}", self.hash_seed)?;
     }
 
     if self.jnl_backup_type != 0 {
-      write!(f, "Journal backup:           ")?;
-      match self.jnl_backup_type {
-        1 => write!(f, "inode blocks")?,
-        _ => write!(f, "type {}\n", self.jnl_backup_type)?,
-      }
+      writeln!(
+        f,
+        "Journal backup:           {}",
+        match self.jnl_backup_type {
+          1 => String::from("inode blocks"),
+          _ => format!("type {}", self.jnl_backup_type),
+        }
+      )?;
     }
 
     if self.backup_bgs[0] != 0 || self.backup_bgs[1] != 0 {
@@ -217,93 +214,73 @@ impl std::fmt::Display for Superblock
       if self.backup_bgs[1] != 0 {
         output.push(format!("{}", self.backup_bgs[1]));
       }
-      write!(f, "Backup block groups:      {}\n", output.join(" "))?;
+      writeln!(f, "Backup block groups:      {}", output.join(" "))?;
     }
 
     if self.snapshot_inum != 0 {
-      write!(
+      writeln!(f, "Snapshot inode:           {}", self.snapshot_inum)?;
+      writeln!(f, "Snapshot ID:              {}", self.snapshot_id)?;
+      writeln!(
         f,
-        "Snapshot inode:           {}\n\
-         Snapshot ID:              {}\n\
-         Snapshot reserved blocks: {}\n",
-        self.snapshot_inum, self.snapshot_id, self.snapshot_r_blocks_count
+        "Snapshot reserved blocks: {}",
+        self.snapshot_r_blocks_count
       )?;
     }
 
     if self.snapshot_list != 0 {
-      write!(f, "Snapshot list head:       {}\n", self.snapshot_list)?;
+      writeln!(f, "Snapshot list head:       {}", self.snapshot_list)?;
     }
 
     if self.error_count != 0 {
-      write!(f, "FS Error count:           {}\n", self.error_count)?;
+      writeln!(f, "FS Error count:           {}", self.error_count)?;
     }
 
     if self.first_error_time != Utc.timestamp(0, 0) {
-      write!(
+      writeln!(
         f,
-        "First error time:         {}\n\
-         First error function:     {}\n\
-         First error line #:       {}\n\
-         First error inode #:      {}\n\
-         First error block #:      {}\n",
-        self.first_error_time,
-        self.first_error_func,
-        self.first_error_line,
-        self.first_error_ino,
-        self.first_error_block
+        "First error time:         {}",
+        crate::util::get_datetime(self.first_error_time)
       )?;
+      writeln!(f, "First error function:     {}", self.first_error_func)?;
+      writeln!(f, "First error line #:       {}", self.first_error_line)?;
+      writeln!(f, "First error inode #:      {}", self.first_error_ino)?;
+      writeln!(f, "First error block #:      {}", self.first_error_block)?;
     }
 
     if self.last_error_time != Utc.timestamp(0, 0) {
-      write!(
+      writeln!(
         f,
-        "Last error time:          {}\n\
-         Last error function:      {}\n\
-         Last error line #:        {}\n\
-         Last error inode #:       {}\n\
-         Last error block #:       {}\n",
-        self.last_error_time,
-        self.last_error_func,
-        self.last_error_line,
-        self.last_error_ino,
-        self.last_error_block
+        "Last error time:          {}",
+        crate::util::get_datetime(self.last_error_time)
       )?;
+      writeln!(f, "Last error function:      {}", self.last_error_func)?;
+      writeln!(f, "Last error line #:        {}", self.last_error_line)?;
+      writeln!(f, "Last error inode #:       {}", self.last_error_ino)?;
+      writeln!(f, "Last error block #:       {}", self.last_error_block)?;
     }
 
     if self.feature_incompat.mmp {
-      write!(
-        f,
-        "MMP block number:         {}\n\
-         MMP update interval:      {}\n",
-        self.mmp_block, self.mmp_interval
-      )?;
+      writeln!(f, "MMP block number:         {}", self.mmp_block)?;
+      writeln!(f, "MMP update interval:      {}", self.mmp_interval)?;
     }
 
     if self.feature_ro_compat.metadata_csum {
-      write!(
-        f,
-        "Checksum type:            {}\n\
-                 Checksum:                 {:#010X}\n",
-        self.checksum_type, self.checksum
-      )?;
+      writeln!(f, "Checksum type:            {}", self.checksum_type)?;
+      writeln!(f, "Checksum:                 {:#010X}", self.checksum)?;
     }
 
     if !self.encrypt_pw_salt.is_null() {
-      write!(f, "Encryption PW Salt:       {}\n", self.encrypt_pw_salt)?;
+      writeln!(f, "Encryption PW Salt:       {}", self.encrypt_pw_salt)?;
     }
 
     if self.feature_incompat.csum_seed {
-      write!(
-        f,
-        "Checksum seed:            {:#010X}\n",
-        self.checksum_seed
-      )?;
+      writeln!(f, "Checksum seed:            {:#010X}", self.checksum_seed)?;
     }
 
     if self.feature_incompat.casefold {
-      write!(f, "Character encoding:       {}\n", self.encoding)?;
+      writeln!(f, "Character encoding:       {}", self.encoding)?;
     }
 
-    write!(f, "")
+    Ok(())
   }
 }

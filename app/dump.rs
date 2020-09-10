@@ -26,7 +26,7 @@ impl Dump
       eprintln!("This dump information may not be accurate.");
     }
 
-    println!("{}", sb);
+    print!("{}", sb);
   }
 
   fn read_img(&self) -> io::Result<File>
