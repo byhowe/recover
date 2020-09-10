@@ -5,6 +5,7 @@ use super::{
 };
 use crate::uuid::Uuid;
 use chrono::{DateTime, Duration, TimeZone, Utc};
+use std::convert::{TryFrom, TryInto};
 use std::io;
 
 #[derive(Debug)]
@@ -243,13 +244,96 @@ impl Superblock
   where
     R: io::Read,
   {
-    let raw = SuperblockRaw::from({
+    let sb: Superblock = {
       let mut block: [u8; 1024] = [0; 1024];
       inner.read_exact(&mut block)?;
-      block
-    });
+      let raw: SuperblockRaw = block.into();
+      raw.try_into()?
+    };
 
-    let superblock = Self {
+    if !ignore_magic && sb.magic == Self::MAGIC_SIGNATURE {
+      Ok(sb)
+    } else {
+      Err(SuperblockError::Signature(sb.magic))
+    }
+  }
+
+  pub fn get_block_size(&self) -> u32
+  {
+    2u32.pow(10 + self.log_block_size)
+  }
+
+  pub fn get_cluster_size(&self) -> u32
+  {
+    2u32.pow(10 + self.log_cluster_size)
+  }
+
+  pub fn get_flexible_block_group(&self) -> u32
+  {
+    2u32.pow(self.log_groups_per_flex.into())
+  }
+
+  pub fn get_inode_size(&self) -> u16
+  {
+    if self.rev_level == Self::GOOD_OLD_REV {
+      Self::GOOD_OLD_INODE_SIZE
+    } else {
+      self.inode_size
+    }
+  }
+
+  pub fn get_blocks_count(&self) -> u64
+  {
+    self.blocks_count_lo as u64
+      | if self.feature_incompat.bit64 {
+        (self.blocks_count_hi as u64) << 32
+      } else {
+        0
+      }
+  }
+
+  pub fn get_reserved_blocks_count(&self) -> u64
+  {
+    self.r_blocks_count_lo as u64
+      | if self.feature_incompat.bit64 {
+        (self.r_blocks_count_hi as u64) << 32
+      } else {
+        0
+      }
+  }
+
+  pub fn get_free_blocks_count(&self) -> u64
+  {
+    self.free_blocks_count_lo as u64
+      | if self.feature_incompat.bit64 {
+        (self.free_blocks_count_hi as u64) << 32
+      } else {
+        0
+      }
+  }
+
+  pub fn get_features(&self) -> Vec<&str>
+  {
+    let mut features = self.feature_compat.features_list();
+    features.append(&mut self.feature_incompat.features_list());
+    features.append(&mut self.feature_ro_compat.features_list());
+    if self.feature_compat.unknown_bits
+      || self.feature_incompat.unknown_bits
+      || self.feature_ro_compat.unknown_bits
+    {
+      features.push("(unknown_bits)");
+    }
+    features
+  }
+}
+
+impl TryFrom<SuperblockRaw> for Superblock
+{
+  type Error = SuperblockError;
+
+  fn try_from(raw: SuperblockRaw) -> Result<Self, Self::Error>
+  {
+    Ok(Self {
       inodes_count: raw.inodes_count,
       blocks_count_lo: raw.blocks_count_lo,
       r_blocks_count_lo: raw.r_blocks_count_lo,
@@ -347,81 +431,7 @@ impl Superblock
       encoding: CharEncoding::from(raw.encoding),
       encoding_flags: raw.encoding_flags,
       checksum: raw.checksum,
-    };
-
-    if !ignore_magic && superblock.magic == Self::MAGIC_SIGNATURE {
-      Ok(superblock)
-    } else {
-      Err(SuperblockError::Signature(superblock.magic))
-    }
-  }
-
-  pub fn get_block_size(&self) -> u32
-  {
-    2u32.pow(10 + self.log_block_size)
-  }
-
-  pub fn get_cluster_size(&self) -> u32
-  {
-    2u32.pow(10 + self.log_cluster_size)
-  }
-
-  pub fn get_flexible_block_group(&self) -> u32
-  {
-    2u32.pow(self.log_groups_per_flex.into())
-  }
-
-  pub fn get_inode_size(&self) -> u16
-  {
-    if self.rev_level == Self::GOOD_OLD_REV {
-      Self::GOOD_OLD_INODE_SIZE
-    } else {
-      self.inode_size
-    }
-  }
-
-  pub fn get_blocks_count(&self) -> u64
-  {
-    self.blocks_count_lo as u64
-      | if self.feature_incompat.bit64 {
-        (self.blocks_count_hi as u64) << 32
-      } else {
-        0
-      }
-  }
-
-  pub fn get_reserved_blocks_count(&self) -> u64
-  {
-    self.r_blocks_count_lo as u64
-      | if self.feature_incompat.bit64 {
-        (self.r_blocks_count_hi as u64) << 32
-      } else {
-        0
-      }
-  }
-
-  pub fn get_free_blocks_count(&self) -> u64
-  {
-    self.free_blocks_count_lo as u64
-      | if self.feature_incompat.bit64 {
-        (self.free_blocks_count_hi as u64) << 32
-      } else {
-        0
-      }
-  }
-
-  pub fn get_features(&self) -> Vec<&str>
-  {
-    let mut features = self.feature_compat.features_list();
-    features.append(&mut self.feature_incompat.features_list());
-    features.append(&mut self.feature_ro_compat.features_list());
-    if self.feature_compat.unknown_bits
-      || self.feature_incompat.unknown_bits
-      || self.feature_ro_compat.unknown_bits
-    {
-      features.push("(unknown_bits)");
-    }
-    features
+    })
   }
 }
 
