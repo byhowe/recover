@@ -1,3 +1,4 @@
+#[derive(Debug, Eq, PartialEq)]
 pub struct Uuid
 {
   time_low: u32,
@@ -29,58 +30,17 @@ impl Uuid
   }
 }
 
-impl From<u128> for Uuid
+impl From<(u32, u16, u16, u16, [u8; 6])> for Uuid
 {
-  fn from(uuid: u128) -> Self
+  fn from(uuid: (u32, u16, u16, u16, [u8; 6])) -> Self
   {
-    let bytes = [
-      uuid as u8,
-      (uuid >> 8) as u8,
-      (uuid >> 16) as u8,
-      (uuid >> 24) as u8,
-      (uuid >> 32) as u8,
-      (uuid >> 40) as u8,
-      (uuid >> 48) as u8,
-      (uuid >> 56) as u8,
-      (uuid >> 64) as u8,
-      (uuid >> 72) as u8,
-    ];
-    let mut uuid_struct = Self {
-      time_low: 0,
-      time_mid: 0,
-      time_hi_and_version: 0,
-      clock_seq: 0,
-      node: [0; 6],
-    };
-
-    let mut tmp: u32 = bytes[0] as u32;
-    tmp = (tmp << 8) | bytes[1] as u32;
-    tmp = (tmp << 8) | bytes[2] as u32;
-    tmp = (tmp << 8) | bytes[3] as u32;
-    uuid_struct.time_low = tmp;
-
-    let mut tmp: u16 = bytes[4] as u16;
-    tmp = (tmp << 8) | bytes[5] as u16;
-    uuid_struct.time_mid = tmp;
-
-    let mut tmp: u16 = bytes[6] as u16;
-    tmp = (tmp << 8) | bytes[7] as u16;
-    uuid_struct.time_hi_and_version = tmp;
-
-    let mut tmp: u16 = bytes[8] as u16;
-    tmp = (tmp << 8) | bytes[9] as u16;
-    uuid_struct.clock_seq = tmp;
-
-    uuid_struct.node = [
-      (uuid >> 80) as u8,
-      (uuid >> 88) as u8,
-      (uuid >> 96) as u8,
-      (uuid >> 104) as u8,
-      (uuid >> 112) as u8,
-      (uuid >> 120) as u8,
-    ];
-
-    uuid_struct
+    Self {
+      time_low: uuid.0,
+      time_mid: uuid.1,
+      time_hi_and_version: uuid.2,
+      clock_seq: uuid.3,
+      node: uuid.4,
+    }
   }
 }
 
@@ -107,13 +67,5 @@ impl std::fmt::Display for Uuid
         self.node[5]
       )
     }
-  }
-}
-
-impl std::fmt::Debug for Uuid
-{
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
-  {
-    write!(f, "{}", self)
   }
 }

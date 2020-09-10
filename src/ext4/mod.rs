@@ -1,3 +1,3 @@
-mod superblock;
+pub mod superblock;
 
-pub use superblock::{Creator, ErrorPolicy, RevisionLevel, State, Superblock, SuperblockError};
+pub use superblock::{Superblock, SuperblockError};

@@ -16,13 +16,10 @@ fn main()
     eprintln!("An IO error occurred while reading the volume: {}", err);
     std::process::exit(1);
   });
-  let sb = ext4::Superblock::new(img).unwrap_or_else(|err| {
+  let sb = ext4::Superblock::new(img, false).unwrap_or_else(|err| {
     eprintln!("{}", err);
     std::process::exit(1);
   });
 
-  println!("\n{}\n", sb);
-  println!("block size: {}", sb.block_size());
-  println!("cluseter size: {}", sb.cluster_size());
-  println!("flexible_block_group: {}", sb.flexible_block_group());
+  println!("{:#}", sb);
 }
