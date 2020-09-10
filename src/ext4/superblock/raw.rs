@@ -1,3 +1,5 @@
+use crate::uuid::UuidRaw;
+
 #[repr(C)]
 #[derive(Debug)]
 pub(crate) struct SuperblockRaw
@@ -33,18 +35,18 @@ pub(crate) struct SuperblockRaw
   pub(crate) feature_compat: u32,
   pub(crate) feature_incompat: u32,
   pub(crate) feature_ro_compat: u32,
-  pub(crate) uuid: (u32, u16, u16, u16, [u8; 6]),
+  pub(crate) uuid: UuidRaw,
   pub(crate) volume_name: [u8; 16],
   pub(crate) last_mounted: [u8; 64],
   pub(crate) algorithm_usage_bitmap: u32,
   pub(crate) prealloc_blocks: u8,
   pub(crate) prealloc_dir_blocks: u8,
   pub(crate) reserved_gdt_blocks: u16,
-  pub(crate) journal_uuid: (u32, u16, u16, u16, [u8; 6]),
+  pub(crate) journal_uuid: UuidRaw,
   pub(crate) journal_inum: u32,
   pub(crate) journal_dev: u32,
   pub(crate) last_orphan: u32,
-  pub(crate) hash_seed: (u32, u16, u16, u16, [u8; 6]),
+  pub(crate) hash_seed: UuidRaw,
   pub(crate) def_hash_version: u8,
   pub(crate) jnl_backup_type: u8,
   pub(crate) desc_size: u16,
@@ -87,7 +89,7 @@ pub(crate) struct SuperblockRaw
   pub(crate) overhead_blocks: u32,
   pub(crate) backup_bgs: [u32; 2],
   pub(crate) encrypt_algos: [u8; 4],
-  pub(crate) encrypt_pw_salt: (u32, u16, u16, u16, [u8; 6]),
+  pub(crate) encrypt_pw_salt: UuidRaw,
   pub(crate) lpf_ino: u32,
   pub(crate) prj_quota_inum: u32,
   pub(crate) checksum_seed: u32,
@@ -109,36 +111,7 @@ impl From<[u8; 1024]> for SuperblockRaw
   #[cfg(target_endian = "little")]
   fn from(block: [u8; 1024]) -> Self
   {
-    let mut raw: SuperblockRaw = unsafe { std::mem::transmute(block) };
-    raw.uuid = (
-      u32::from_be(raw.uuid.0),
-      u16::from_be(raw.uuid.1),
-      u16::from_be(raw.uuid.2),
-      u16::from_be(raw.uuid.3),
-      raw.uuid.4,
-    );
-    raw.journal_uuid = (
-      u32::from_be(raw.journal_uuid.0),
-      u16::from_be(raw.journal_uuid.1),
-      u16::from_be(raw.journal_uuid.2),
-      u16::from_be(raw.journal_uuid.3),
-      raw.journal_uuid.4,
-    );
-    raw.hash_seed = (
-      u32::from_be(raw.hash_seed.0),
-      u16::from_be(raw.hash_seed.1),
-      u16::from_be(raw.hash_seed.2),
-      u16::from_be(raw.hash_seed.3),
-      raw.hash_seed.4,
-    );
-    raw.encrypt_pw_salt = (
-      u32::from_be(raw.encrypt_pw_salt.0),
-      u16::from_be(raw.encrypt_pw_salt.1),
-      u16::from_be(raw.encrypt_pw_salt.2),
-      u16::from_be(raw.encrypt_pw_salt.3),
-      raw.encrypt_pw_salt.4,
-    );
-    raw
+    unsafe { std::mem::transmute(block) }
   }
 
   #[cfg(target_endian = "big")]

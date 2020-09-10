@@ -8,6 +8,17 @@ pub struct Uuid
   node: [u8; 6],
 }
 
+#[derive(Debug, Eq, PartialEq)]
+#[repr(C)]
+pub(crate) struct UuidRaw
+{
+  time_low: u32,
+  time_mid: u16,
+  time_hi_and_version: u16,
+  clock_seq: u16,
+  node: [u8; 6],
+}
+
 impl Uuid
 {
   pub fn is_null(&self) -> bool
@@ -30,16 +41,29 @@ impl Uuid
   }
 }
 
-impl From<(u32, u16, u16, u16, [u8; 6])> for Uuid
+impl From<UuidRaw> for Uuid
 {
-  fn from(uuid: (u32, u16, u16, u16, [u8; 6])) -> Self
+  #[cfg(target_endian = "little")]
+  fn from(uuid: UuidRaw) -> Self
   {
     Self {
-      time_low: uuid.0,
-      time_mid: uuid.1,
-      time_hi_and_version: uuid.2,
-      clock_seq: uuid.3,
-      node: uuid.4,
+      time_low: u32::from_be(uuid.time_low),
+      time_mid: u16::from_be(uuid.time_mid),
+      time_hi_and_version: u16::from_be(uuid.time_hi_and_version),
+      clock_seq: u16::from_be(uuid.clock_seq),
+      node: uuid.node,
+    }
+  }
+
+  #[cfg(target_endian = "big")]
+  fn from(uuid: UuidRaw) -> Self
+  {
+    Self {
+      time_low: uuid.time_low,
+      time_mid: uuid.time_mid,
+      time_hi_and_version: uuid.time_hi_and_version,
+      clock_seq: uuid.clock_seq,
+      node: uuid.node,
     }
   }
 }
