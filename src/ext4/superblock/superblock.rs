@@ -234,27 +234,29 @@ pub struct Superblock
 
 impl Superblock
 {
+  pub const RAW_WIDTH: usize = SuperblockRaw::WIDTH;
+
   pub const MAGIC_SIGNATURE: u16 = 0xEF53;
 
   pub const GOOD_OLD_FIRST_INO: u32 = 11;
   pub const GOOD_OLD_REV: RevisionLevel = RevisionLevel::Original;
   pub const GOOD_OLD_INODE_SIZE: u16 = 128;
 
-  pub fn new<R>(mut inner: R) -> Result<Self, Error>
+  pub fn new<R>(inner: &mut R) -> Result<Self, Error>
   where
     R: io::Read,
   {
-    let mut block: [u8; 1024] = [0; 1024];
+    let mut block: [u8; Self::RAW_WIDTH] = [0; Self::RAW_WIDTH];
     inner.read_exact(&mut block)?;
     Ok(SuperblockRaw::from(&block).try_into()?)
   }
 
-  pub fn check_signature(&self) -> Option<Error>
+  pub fn check_signature(&self) -> Option<SignatureError>
   {
     if self.magic == Self::MAGIC_SIGNATURE {
       None
     } else {
-      Some(Error::Signature(self.magic))
+      Some(SignatureError(self.magic))
     }
   }
 
@@ -334,120 +336,135 @@ impl TryFrom<SuperblockRaw> for Superblock
   fn try_from(raw: SuperblockRaw) -> Result<Self, Self::Error>
   {
     Ok(Self {
-      inodes_count: raw.inodes_count,
-      blocks_count_lo: raw.blocks_count_lo,
-      r_blocks_count_lo: raw.r_blocks_count_lo,
-      free_blocks_count_lo: raw.free_blocks_count_lo,
-      free_inodes_count: raw.free_inodes_count,
-      first_data_block: raw.first_data_block,
-      log_block_size: raw.log_block_size,
-      log_cluster_size: raw.log_cluster_size,
-      blocks_per_group: raw.blocks_per_group,
-      clusters_per_group: raw.clusters_per_group,
-      inodes_per_group: raw.inodes_per_group,
-      mtime: Utc.timestamp(raw.mtime as i64, 0),
-      wtime: Utc.timestamp(raw.wtime as i64, 0),
-      mnt_count: raw.mnt_count,
-      max_mnt_count: raw.max_mnt_count,
-      magic: raw.magic,
-      state: State::from_raw(raw.state),
-      errors: ErrorPolicy::from_raw(raw.errors),
-      minor_rev_level: raw.minor_rev_level,
-      lastcheck: Utc.timestamp(raw.lastcheck as i64, 0),
-      checkinterval: Duration::seconds(raw.checkinterval as i64),
-      creator_os: Creator::from_raw(raw.creator_os),
-      rev_level: RevisionLevel::from_raw(raw.rev_level),
-      def_resuid: raw.def_resuid,
-      def_resgid: raw.def_resgid,
-      first_ino: raw.first_ino,
-      inode_size: raw.inode_size,
-      block_group_nr: raw.block_group_nr,
-      feature_compat: FeatureCompat::from_raw(raw.feature_compat),
-      feature_incompat: FeatureIncompat::from_raw(raw.feature_incompat),
-      feature_ro_compat: ReadOnlyFeatureCompat::from_raw(raw.feature_ro_compat),
-      uuid: Uuid::from(raw.uuid),
-      volume_name: String::from_utf8(raw.volume_name.to_vec())?,
-      last_mounted: String::from_utf8(raw.last_mounted.to_vec())?,
-      algorithm_usage_bitmap: raw.algorithm_usage_bitmap,
-      prealloc_blocks: raw.prealloc_blocks,
-      prealloc_dir_blocks: raw.prealloc_dir_blocks,
-      reserved_gdt_blocks: raw.reserved_gdt_blocks,
-      journal_uuid: Uuid::from(raw.journal_uuid),
-      journal_inum: raw.journal_inum,
-      journal_dev: raw.journal_dev,
-      last_orphan: raw.last_orphan,
-      hash_seed: Uuid::from(raw.hash_seed),
-      def_hash_version: HashVersion::from_raw(raw.def_hash_version),
-      jnl_backup_type: raw.jnl_backup_type,
-      desc_size: raw.desc_size,
-      default_mount_opts: DefaultMountOptions::from_raw(raw.default_mount_opts),
-      first_meta_bg: raw.first_meta_bg,
-      mkfs_time: Utc.timestamp(raw.mkfs_time as i64, 0),
-      jnl_blocks: raw.jnl_blocks,
-      blocks_count_hi: raw.blocks_count_hi,
-      r_blocks_count_hi: raw.r_blocks_count_hi,
-      free_blocks_count_hi: raw.free_blocks_count_hi,
-      min_extra_isize: raw.min_extra_isize,
-      want_extra_isize: raw.want_extra_isize,
-      flags: Flags::from_raw(raw.flags),
-      raid_stride: raw.raid_stride,
-      mmp_interval: Duration::seconds(raw.mmp_interval as i64),
-      mmp_block: raw.mmp_block,
-      raid_stripe_width: raw.raid_stripe_width,
-      log_groups_per_flex: raw.log_groups_per_flex,
-      checksum_type: ChecksumType::from_raw(raw.checksum_type),
-      kbytes_written: raw.kbytes_written,
-      snapshot_inum: raw.snapshot_inum,
-      snapshot_id: raw.snapshot_id,
-      snapshot_r_blocks_count: raw.snapshot_r_blocks_count,
-      snapshot_list: raw.snapshot_list,
-      error_count: raw.error_count,
-      first_error_time: Utc.timestamp(raw.first_error_time as i64, 0),
-      first_error_ino: raw.first_error_ino,
-      first_error_block: raw.first_error_block,
-      first_error_func: String::from_utf8(raw.first_error_func.to_vec())?,
-      first_error_line: raw.first_error_line,
-      last_error_time: Utc.timestamp(raw.last_error_time as i64, 0),
-      last_error_ino: raw.last_error_ino,
-      last_error_line: raw.last_error_line,
-      last_error_block: raw.last_error_block,
-      last_error_func: String::from_utf8(raw.last_error_func.to_vec())?,
-      mount_opts: String::from_utf8(raw.mount_opts.to_vec())?,
-      usr_quota_inum: raw.usr_quota_inum,
-      grp_quota_inum: raw.grp_quota_inum,
-      overhead_blocks: raw.overhead_blocks,
-      backup_bgs: raw.backup_bgs,
-      encrypt_algos: EncryptionMode::from_modes(&raw.encrypt_algos),
-      encrypt_pw_salt: Uuid::from(raw.encrypt_pw_salt),
-      lpf_ino: raw.lpf_ino,
-      prj_quota_inum: raw.prj_quota_inum,
-      checksum_seed: raw.checksum_seed,
-      wtime_hi: raw.wtime_hi,
-      mtime_hi: raw.mtime_hi,
-      mkfs_time_hi: raw.mkfs_time_hi,
-      lastcheck_hi: raw.lastcheck_hi,
-      first_error_time_hi: raw.first_error_time_hi,
-      last_error_time_hi: raw.last_error_time_hi,
-      encoding: CharEncoding::from(raw.encoding),
-      encoding_flags: raw.encoding_flags,
-      checksum: raw.checksum,
+      inodes_count: raw.s_inodes_count,
+      blocks_count_lo: raw.s_blocks_count_lo,
+      r_blocks_count_lo: raw.s_r_blocks_count_lo,
+      free_blocks_count_lo: raw.s_free_blocks_count_lo,
+      free_inodes_count: raw.s_free_inodes_count,
+      first_data_block: raw.s_first_data_block,
+      log_block_size: raw.s_log_block_size,
+      log_cluster_size: raw.s_log_cluster_size,
+      blocks_per_group: raw.s_blocks_per_group,
+      clusters_per_group: raw.s_clusters_per_group,
+      inodes_per_group: raw.s_inodes_per_group,
+      mtime: Utc.timestamp(raw.s_mtime as i64, 0),
+      wtime: Utc.timestamp(raw.s_wtime as i64, 0),
+      mnt_count: raw.s_mnt_count,
+      max_mnt_count: raw.s_max_mnt_count,
+      magic: raw.s_magic,
+      state: State::from_raw(raw.s_state),
+      errors: ErrorPolicy::from_raw(raw.s_errors),
+      minor_rev_level: raw.s_minor_rev_level,
+      lastcheck: Utc.timestamp(raw.s_lastcheck as i64, 0),
+      checkinterval: Duration::seconds(raw.s_checkinterval as i64),
+      creator_os: Creator::from_raw(raw.s_creator_os),
+      rev_level: RevisionLevel::from_raw(raw.s_rev_level),
+      def_resuid: raw.s_def_resuid,
+      def_resgid: raw.s_def_resgid,
+      first_ino: raw.s_first_ino,
+      inode_size: raw.s_inode_size,
+      block_group_nr: raw.s_block_group_nr,
+      feature_compat: FeatureCompat::from_raw(raw.s_feature_compat),
+      feature_incompat: FeatureIncompat::from_raw(raw.s_feature_incompat),
+      feature_ro_compat: ReadOnlyFeatureCompat::from_raw(raw.s_feature_ro_compat),
+      uuid: Uuid::from(raw.s_uuid),
+      volume_name: String::from_utf8(raw.s_volume_name.to_vec())?,
+      last_mounted: String::from_utf8(raw.s_last_mounted.to_vec())?,
+      algorithm_usage_bitmap: raw.s_algorithm_usage_bitmap,
+      prealloc_blocks: raw.s_prealloc_blocks,
+      prealloc_dir_blocks: raw.s_prealloc_dir_blocks,
+      reserved_gdt_blocks: raw.s_reserved_gdt_blocks,
+      journal_uuid: Uuid::from(raw.s_journal_uuid),
+      journal_inum: raw.s_journal_inum,
+      journal_dev: raw.s_journal_dev,
+      last_orphan: raw.s_last_orphan,
+      hash_seed: Uuid::from(raw.s_hash_seed),
+      def_hash_version: HashVersion::from_raw(raw.s_def_hash_version),
+      jnl_backup_type: raw.s_jnl_backup_type,
+      desc_size: raw.s_desc_size,
+      default_mount_opts: DefaultMountOptions::from_raw(raw.s_default_mount_opts),
+      first_meta_bg: raw.s_first_meta_bg,
+      mkfs_time: Utc.timestamp(raw.s_mkfs_time as i64, 0),
+      jnl_blocks: raw.s_jnl_blocks,
+      blocks_count_hi: raw.s_blocks_count_hi,
+      r_blocks_count_hi: raw.s_r_blocks_count_hi,
+      free_blocks_count_hi: raw.s_free_blocks_count_hi,
+      min_extra_isize: raw.s_min_extra_isize,
+      want_extra_isize: raw.s_want_extra_isize,
+      flags: Flags::from_raw(raw.s_flags),
+      raid_stride: raw.s_raid_stride,
+      mmp_interval: Duration::seconds(raw.s_mmp_interval as i64),
+      mmp_block: raw.s_mmp_block,
+      raid_stripe_width: raw.s_raid_stripe_width,
+      log_groups_per_flex: raw.s_log_groups_per_flex,
+      checksum_type: ChecksumType::from_raw(raw.s_checksum_type),
+      kbytes_written: raw.s_kbytes_written,
+      snapshot_inum: raw.s_snapshot_inum,
+      snapshot_id: raw.s_snapshot_id,
+      snapshot_r_blocks_count: raw.s_snapshot_r_blocks_count,
+      snapshot_list: raw.s_snapshot_list,
+      error_count: raw.s_error_count,
+      first_error_time: Utc.timestamp(raw.s_first_error_time as i64, 0),
+      first_error_ino: raw.s_first_error_ino,
+      first_error_block: raw.s_first_error_block,
+      first_error_func: String::from_utf8(raw.s_first_error_func.to_vec())?,
+      first_error_line: raw.s_first_error_line,
+      last_error_time: Utc.timestamp(raw.s_last_error_time as i64, 0),
+      last_error_ino: raw.s_last_error_ino,
+      last_error_line: raw.s_last_error_line,
+      last_error_block: raw.s_last_error_block,
+      last_error_func: String::from_utf8(raw.s_last_error_func.to_vec())?,
+      mount_opts: String::from_utf8(raw.s_mount_opts.to_vec())?,
+      usr_quota_inum: raw.s_usr_quota_inum,
+      grp_quota_inum: raw.s_grp_quota_inum,
+      overhead_blocks: raw.s_overhead_blocks,
+      backup_bgs: raw.s_backup_bgs,
+      encrypt_algos: EncryptionMode::from_modes(&raw.s_encrypt_algos),
+      encrypt_pw_salt: Uuid::from(raw.s_encrypt_pw_salt),
+      lpf_ino: raw.s_lpf_ino,
+      prj_quota_inum: raw.s_prj_quota_inum,
+      checksum_seed: raw.s_checksum_seed,
+      wtime_hi: raw.s_wtime_hi,
+      mtime_hi: raw.s_mtime_hi,
+      mkfs_time_hi: raw.s_mkfs_time_hi,
+      lastcheck_hi: raw.s_lastcheck_hi,
+      first_error_time_hi: raw.s_first_error_time_hi,
+      last_error_time_hi: raw.s_last_error_time_hi,
+      encoding: CharEncoding::from(raw.s_encoding),
+      encoding_flags: raw.s_encoding_flags,
+      checksum: raw.s_checksum,
     })
+  }
+}
+
+#[derive(Debug)]
+pub struct SignatureError(u16);
+
+impl std::fmt::Display for SignatureError
+{
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
+  {
+    write!(
+      f,
+      "Expected magic number was {:#06X} but found {:#06X}.",
+      Superblock::MAGIC_SIGNATURE,
+      self.0
+    )
   }
 }
 
 #[derive(Debug)]
 pub enum Error
 {
-  IOError(io::Error),
-  StringError(std::string::FromUtf8Error),
-  Signature(u16),
+  IO(io::Error),
+  String(std::string::FromUtf8Error),
 }
 
 impl From<io::Error> for Error
 {
   fn from(e: io::Error) -> Self
   {
-    Self::IOError(e)
+    Self::IO(e)
   }
 }
 
@@ -455,7 +472,7 @@ impl From<std::string::FromUtf8Error> for Error
 {
   fn from(error: std::string::FromUtf8Error) -> Self
   {
-    Self::StringError(error)
+    Self::String(error)
   }
 }
 
@@ -467,16 +484,11 @@ impl std::fmt::Display for Error
       f,
       "{}",
       match self {
-        Self::IOError(io_err) => format!(
+        Self::IO(error) => format!(
           "An IO error occurred while reading the superblock: {}",
-          io_err
+          error
         ),
-        Self::StringError(str_err) => format!("A string error occurred: {}", str_err),
-        Self::Signature(sig) => format!(
-          "Expected magic number was {:#06x} but found {:#06x}.",
-          Superblock::MAGIC_SIGNATURE,
-          sig
-        ),
+        Self::String(error) => format!("A string error occurred: {}", error),
       }
     )
   }

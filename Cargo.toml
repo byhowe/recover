@@ -5,6 +5,7 @@ authors = ["B. Howe <37745048+byhowe@users.noreply.github.com>"]
 edition = "2018"
 
 [dependencies]
+ansi_term = "0.12"
 chrono = "0.4"
 clap = "2"
 

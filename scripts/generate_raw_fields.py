@@ -123,7 +123,7 @@ print()
 print(" " * INDENT + '#[cfg(target_endian = "big")]')
 print(" " * INDENT + "fn from(block: &[u8; Self::WIDTH]) -> Self {")
 
-print(" " * INDENT * 2 + "let mut raw: %s = unsafe { std::mem::transmute(*block) };" % struct_name)
+print(" " * INDENT * 2 + "let mut raw: Self = unsafe { std::mem::transmute(*block) };")
 
 for e in entries:
     if e.data_type == "u8":
