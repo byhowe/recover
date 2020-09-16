@@ -1,0 +1,27 @@
+0x0 	__le16 	i_mode 	File mode. See the table i_mode below.
+0x2 	__le16 	i_uid 	Lower 16-bits of Owner UID.
+0x4 	__le32 	i_size_lo 	Lower 32-bits of size in bytes.
+0x8 	__le32 	i_atime 	Last access time, in seconds since the epoch. However, if the EA_INODE inode flag is set, this inode stores an extended attribute value and this field contains the checksum of the value.
+0xC 	__le32 	i_ctime 	Last inode change time, in seconds since the epoch. However, if the EA_INODE inode flag is set, this inode stores an extended attribute value and this field contains the lower 32 bits of the attribute value’s reference count.
+0x10 	__le32 	i_mtime 	Last data modification time, in seconds since the epoch. However, if the EA_INODE inode flag is set, this inode stores an extended attribute value and this field contains the number of the inode that owns the extended attribute.
+0x14 	__le32 	i_dtime 	Deletion Time, in seconds since the epoch.
+0x18 	__le16 	i_gid 	Lower 16-bits of GID.
+0x1A 	__le16 	i_links_count 	Hard link count. Normally, ext4 does not permit an inode to have more than 65,000 hard links. This applies to files as well as directories, which means that there cannot be more than 64,998 subdirectories in a directory (each subdirectory’s ‘..’ entry counts as a hard link, as does the ‘.’ entry in the directory itself). With the DIR_NLINK feature enabled, ext4 supports more than 64,998 subdirectories by setting this field to 1 to indicate that the number of hard links is not known.
+0x1C 	__le32 	i_blocks_lo 	Lower 32-bits of “block” count. If the huge_file feature flag is not set on the filesystem, the file consumes i_blocks_lo 512-byte blocks on disk. If huge_file is set and EXT4_HUGE_FILE_FL is NOT set in inode.i_flags, then the file consumes i_blocks_lo + (i_blocks_hi << 32) 512-byte blocks on disk. If huge_file is set and EXT4_HUGE_FILE_FL IS set in inode.i_flags, then this file consumes (i_blocks_lo + i_blocks_hi << 32) filesystem blocks on disk.
+0x20 	__le32 	i_flags 	Inode flags. See the table i_flags below.
+0x24 	__u8 	i_osd1[4] 	See the table i_osd1 for more details.
+0x28 	__u8 	i_block[60] 	Block map or extent tree. See the section “The Contents of inode.i_block”.
+0x64 	__le32 	i_generation 	File version (for NFS).
+0x68 	__le32 	i_file_acl_lo 	Lower 32-bits of extended attribute block. ACLs are of course one of many possible extended attributes; I think the name of this field is a result of the first use of extended attributes being for ACLs.
+0x6C 	__le32 	i_size_high 	Upper 32-bits of file/directory size. In ext2/3 this field was named i_dir_acl, though it was usually set to zero and never used.
+0x70 	__le32 	i_obso_faddr 	(Obsolete) fragment address.
+0x74 	__u8 	i_osd2[12] 	See the table i_osd2 for more details.
+0x80 	__le16 	i_extra_isize 	Size of this inode - 128. Alternately, the size of the extended inode fields beyond the original ext2 inode, including this field.
+0x82 	__le16 	i_checksum_hi 	Upper 16-bits of the inode checksum.
+0x84 	__le32 	i_ctime_extra 	Extra change time bits. This provides sub-second precision. See Inode Timestamps section.
+0x88 	__le32 	i_mtime_extra 	Extra modification time bits. This provides sub-second precision.
+0x8C 	__le32 	i_atime_extra 	Extra access time bits. This provides sub-second precision.
+0x90 	__le32 	i_crtime 	File creation time, in seconds since the epoch.
+0x94 	__le32 	i_crtime_extra 	Extra file creation time bits. This provides sub-second precision.
+0x98 	__le32 	i_version_hi 	Upper 32-bits for version number.
+0x9C 	__le32 	i_projid 	Project ID.

@@ -1,5 +1,6 @@
 use crate::ext4::{superblock, Superblock};
 use std::io::{self, SeekFrom};
+use super::iters;
 
 pub struct FileSystem<R>
 where
@@ -19,8 +20,13 @@ where
     let sb = Superblock::new(&mut inner)?;
     Ok(Self { inner, sb })
   }
+
+  pub fn iter_group_descriptors(&self) -> iters::GroupDescIter {
+    iters::GroupDescIter {}
+  }
 }
 
+#[derive(Debug)]
 pub enum Error
 {
   IO(io::Error),

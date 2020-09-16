@@ -1,5 +1,5 @@
 use crate::{die, error, info};
-use recover::ext4::{GroupDesc, Superblock};
+use recover::ext4::Superblock;
 use std::fs::File;
 use std::io::{self, Seek, SeekFrom};
 use std::path::PathBuf;
@@ -26,7 +26,7 @@ impl Dump
     img.seek(SeekFrom::Current(1024))?;
 
     let sb = Superblock::new(&mut img).unwrap_or_else(|err| {
-      die!("Superblock error has occured: {}", err);
+      die!("Superblock error: {}", err);
     });
 
     if let Some(err) = sb.check_signature() {
@@ -35,12 +35,6 @@ impl Dump
     }
 
     print!("{}", sb);
-
-    let gd = GroupDesc::new(&mut img, sb.feature_incompat.bit64).unwrap_or_else(|err| {
-      die!("Group descriptor reading error has occurred: {}", err);
-    });
-
-    println!("{:#?}", gd);
 
     Ok(())
   }
