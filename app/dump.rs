@@ -1,5 +1,5 @@
 use crate::{die, error, info};
-use recover::ext4::Superblock;
+use recover::ext4::{GroupDesc, Superblock};
 use std::fs::File;
 use std::io::{self, Seek, SeekFrom};
 use std::path::PathBuf;
@@ -35,6 +35,12 @@ impl Dump
     }
 
     print!("{}", sb);
+
+    let gd = GroupDesc::new(&mut img, sb.feature_incompat.bit64).unwrap_or_else(|err| {
+      die!("Group descriptor reading error has occurred: {}", err);
+    });
+
+    println!("{:#?}", gd);
 
     Ok(())
   }

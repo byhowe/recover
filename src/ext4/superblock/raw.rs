@@ -261,13 +261,13 @@ impl From<&[u8; Self::WIDTH]> for SuperblockRaw
   #[cfg(target_endian = "little")]
   fn from(block: &[u8; Self::WIDTH]) -> Self
   {
-    unsafe { std::mem::transmute(*block) }
+    unsafe { std::mem::transmute::<[u8; Self::WIDTH], Self>(*block) }
   }
 
   #[cfg(target_endian = "big")]
   fn from(block: &[u8; Self::WIDTH]) -> Self
   {
-    let mut raw: SuperblockRaw = unsafe { std::mem::transmute(*block) };
+    let mut raw = unsafe { std::mem::transmute::<[u8; Self::WIDTH], Self>(*block) };
     raw.s_inodes_count = u32::from_le(raw.s_inodes_count);
     raw.s_blocks_count_lo = u32::from_le(raw.s_blocks_count_lo);
     raw.s_r_blocks_count_lo = u32::from_le(raw.s_r_blocks_count_lo);

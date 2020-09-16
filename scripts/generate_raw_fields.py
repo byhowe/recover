@@ -114,7 +114,7 @@ print("impl From<&[u8; Self::WIDTH]> for %s {" % struct_name)
 print(" " * INDENT + '#[cfg(target_endian = "little")]')
 print(" " * INDENT + "fn from(block: &[u8; Self::WIDTH]) -> Self {")
 
-print(" " * INDENT * 2 + "unsafe { std::mem::transmute(*block) }")
+print(" " * INDENT * 2 + "unsafe { std::mem::transmute::<[u8; Self::WIDTH], Self>(*block) }")
 
 print(" " * INDENT + "}")
 
@@ -123,7 +123,7 @@ print()
 print(" " * INDENT + '#[cfg(target_endian = "big")]')
 print(" " * INDENT + "fn from(block: &[u8; Self::WIDTH]) -> Self {")
 
-print(" " * INDENT * 2 + "let mut raw: Self = unsafe { std::mem::transmute(*block) };")
+print(" " * INDENT * 2 + "let mut raw = unsafe { std::mem::transmute::<[u8; Self::WIDTH], Self>(*block) };")
 
 for e in entries:
     if e.data_type == "u8":
