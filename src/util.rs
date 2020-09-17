@@ -1,5 +1,14 @@
 use chrono::{DateTime, TimeZone, Utc};
 
+#[macro_export]
+macro_rules! add_to_list {
+  ($self:ident, $list:ident, $item:expr, $flag_name:ident) => {
+    if $self.contains(Self::$flag_name) {
+      $list.push($item);
+    }
+  };
+}
+
 #[inline(always)]
 pub fn get_string_list<'a>(list: &'a Vec<&str>) -> String
 {

@@ -60,13 +60,13 @@ impl std::fmt::Display for Superblock
     writeln!(f, "First block:              {}", self.first_data_block)?;
     writeln!(f, "Block size:               {}", self.get_block_size())?;
 
-    if self.feature_ro_compat.bigalloc {
+    if self.feature_bigalloc() {
       writeln!(f, "Cluster size:             {}", self.get_cluster_size())?;
     } else {
       writeln!(f, "Fragment size:            {}", self.get_cluster_size())?;
     }
 
-    if self.feature_incompat.bit64 {
+    if self.feature_64bit() {
       writeln!(f, "Group descriptor size:    {}", self.desc_size)?;
     }
 
@@ -76,7 +76,7 @@ impl std::fmt::Display for Superblock
 
     writeln!(f, "Blocks per group:         {}", self.blocks_per_group)?;
 
-    if self.feature_ro_compat.bigalloc {
+    if self.feature_bigalloc() {
       writeln!(f, "Clusters per group:       {}", self.clusters_per_group)?;
     } else {
       writeln!(f, "Fragments per group:      {}", self.clusters_per_group)?;
@@ -189,7 +189,7 @@ impl std::fmt::Display for Superblock
       writeln!(f, "First orphan inode:       {}", self.last_orphan)?;
     }
 
-    if self.feature_compat.dir_index || self.def_hash_version != HashVersion::Legacy {
+    if self.feature_dir_index() || self.def_hash_version != HashVersion::Legacy {
       writeln!(f, "Default directory hash:   {}", self.def_hash_version)?;
     }
 
@@ -261,12 +261,12 @@ impl std::fmt::Display for Superblock
       writeln!(f, "Last error block #:       {}", self.last_error_block)?;
     }
 
-    if self.feature_incompat.mmp {
+    if self.feature_mmp() {
       writeln!(f, "MMP block number:         {}", self.mmp_block)?;
       writeln!(f, "MMP update interval:      {}", self.mmp_interval)?;
     }
 
-    if self.feature_ro_compat.metadata_csum {
+    if self.feature_metadata_csum() {
       writeln!(f, "Checksum type:            {}", self.checksum_type)?;
       writeln!(f, "Checksum:                 {:#010X}", self.checksum)?;
     }
@@ -275,11 +275,11 @@ impl std::fmt::Display for Superblock
       writeln!(f, "Encryption PW Salt:       {}", self.encrypt_pw_salt)?;
     }
 
-    if self.feature_incompat.csum_seed {
+    if self.feature_csum_seed() {
       writeln!(f, "Checksum seed:            {:#010X}", self.checksum_seed)?;
     }
 
-    if self.feature_incompat.casefold {
+    if self.feature_casefold() {
       writeln!(f, "Character encoding:       {}", self.encoding)?;
     }
 

@@ -51,10 +51,7 @@ impl std::fmt::Display for Error
       f,
       "Inode error: {}",
       match self {
-        Self::IO(error) => format!(
-          "An IO error occurred: {}",
-          error
-        ),
+        Self::IO(error) => format!("An IO error occurred: {}", error),
       }
     )
   }

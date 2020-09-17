@@ -72,10 +72,7 @@ impl std::fmt::Display for Error
       f,
       "Filesystem error: {}",
       match self {
-        Self::IO(error) => format!(
-          "An IO error occurred: {}",
-          error
-        ),
+        Self::IO(error) => format!("An IO error occurred: {}", error),
         Self::Superblock(err) => err.to_string(),
       }
     )

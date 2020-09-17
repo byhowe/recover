@@ -106,6 +106,7 @@ name = "recover"
 version = "0.1.0"
 dependencies = [
  "ansi_term 0.12.1",
+ "bitflags",
  "chrono",
  "clap",
  "libc",

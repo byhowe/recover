@@ -1,43 +1,34 @@
-#[derive(Debug)]
-pub struct Flags
-{
-  signed_directory_hash: bool,
-  unsigned_directory_hash: bool,
-  test_filesystem: bool,
-  unknown_bits: bool,
+use crate::add_to_list;
+use bitflags::bitflags;
+
+bitflags! {
+  pub struct Flags: u32
+  {
+    const SIGNED_DIRECTORY_HASH = 0x1;
+    const UNSIGNED_DIRECTORY_HASH = 0x2;
+    const TEST_FILESYSTEM = 0x4;
+  }
 }
 
 impl Flags
 {
-  const SIGNED_DIRECTORY_HASH: u32 = 0x1;
-  const UNSIGNED_DIRECTORY_HASH: u32 = 0x2;
-  const TEST_FILESYSTEM: u32 = 0x4;
-
-  pub fn from_raw(flags: u32) -> Self
+  pub fn from_raw(raw: u32) -> Self
   {
-    Self {
-      signed_directory_hash: flags & Self::SIGNED_DIRECTORY_HASH != 0,
-      unsigned_directory_hash: flags & Self::UNSIGNED_DIRECTORY_HASH != 0,
-      test_filesystem: flags & Self::TEST_FILESYSTEM != 0,
-      unknown_bits: flags
-        & !(Self::SIGNED_DIRECTORY_HASH | Self::UNSIGNED_DIRECTORY_HASH | Self::TEST_FILESYSTEM)
-        != 0,
-    }
+    unsafe { Self::from_bits_unchecked(raw) }
   }
 
   pub fn flags_list(&self) -> Vec<&str>
   {
     let mut output = Vec::new();
-    if self.signed_directory_hash {
-      output.push("signed_directory_hash");
-    }
-    if self.unsigned_directory_hash {
-      output.push("unsigned_directory_hash");
-    }
-    if self.test_filesystem {
-      output.push("test_filesystem");
-    }
-    if self.unknown_bits {
+    add_to_list!(self, output, "signed_directory_hash", SIGNED_DIRECTORY_HASH);
+    add_to_list!(
+      self,
+      output,
+      "unsigned_directory_hash",
+      UNSIGNED_DIRECTORY_HASH
+    );
+    add_to_list!(self, output, "test_filesystem", TEST_FILESYSTEM);
+    if !self.intersects(Self::all()) {
       output.push("(unknown_bits)")
     }
     output

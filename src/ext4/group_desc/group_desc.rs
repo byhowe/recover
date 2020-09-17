@@ -149,10 +149,7 @@ impl std::fmt::Display for Error
       f,
       "Group descriptor error: {}",
       match self {
-        Self::IO(error) => format!(
-          "An IO error occurred: {}",
-          error
-        ),
+        Self::IO(error) => format!("An IO error occurred: {}", error),
       }
     )
   }

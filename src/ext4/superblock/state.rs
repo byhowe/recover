@@ -1,28 +1,20 @@
-#[derive(Debug)]
-pub struct State
-{
-  pub cleanly_unmounted: bool,
-  pub errors_detected: bool,
-  pub orphans_being_recovered: bool,
-  pub unknown_bits: bool,
+use crate::add_to_list;
+use bitflags::bitflags;
+
+bitflags! {
+  pub struct State: u16
+  {
+    const CLEANLY_UNMOUNTED = 0x0001;
+    const ERRORS_DETECTED = 0x0002;
+    const ORPHANS_BEING_RECOVERED = 0x0004;
+  }
 }
 
 impl State
 {
-  const CLEANLY_UNMOUNTED: u16 = 0x0001;
-  const ERRORS_DETECTED: u16 = 0x0002;
-  const ORPHANS_BEING_RECOVERED: u16 = 0x0004;
-
   pub fn from_raw(state: u16) -> Self
   {
-    Self {
-      cleanly_unmounted: state & Self::CLEANLY_UNMOUNTED != 0,
-      errors_detected: state & Self::ERRORS_DETECTED != 0,
-      orphans_being_recovered: state & Self::ORPHANS_BEING_RECOVERED != 0,
-      unknown_bits: state
-        & !(Self::CLEANLY_UNMOUNTED | Self::ERRORS_DETECTED | Self::ORPHANS_BEING_RECOVERED)
-        != 0,
-    }
+    unsafe { Self::from_bits_unchecked(state) }
   }
 }
 
@@ -31,18 +23,19 @@ impl std::fmt::Display for State
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
   {
     let mut output = Vec::new();
-    if self.cleanly_unmounted {
+    if self.contains(Self::CLEANLY_UNMOUNTED) {
       output.push("clean");
     } else {
       output.push("not clean");
     }
-    if self.errors_detected {
-      output.push("errors detected");
-    }
-    if self.orphans_being_recovered {
-      output.push("orphans being recovered");
-    }
-    if self.unknown_bits {
+    add_to_list!(self, output, "errors detected", ERRORS_DETECTED);
+    add_to_list!(
+      self,
+      output,
+      "orphans being recovered",
+      ORPHANS_BEING_RECOVERED
+    );
+    if !self.intersects(Self::all()) {
       output.push("unknown bits were found");
     }
     write!(f, "{}", output.join(", "))

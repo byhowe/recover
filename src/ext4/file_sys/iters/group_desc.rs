@@ -36,7 +36,7 @@ where
     if self.idx == self.count {
       None
     } else {
-      let group_desc_size: u32 = if self.fs.sb.feature_incompat.bit64 {
+      let group_desc_size: u32 = if self.fs.sb.feature_64bit() {
         GroupDesc::RAW_WIDTH64 as u32
       } else {
         GroupDesc::RAW_WIDTH32 as u32
@@ -46,7 +46,7 @@ where
       if let Err(_) = self.fs.seek(SeekFrom::Start(group_desc_offset as u64)) {
         None
       } else {
-        GroupDesc::new(&mut self.fs.inner, self.fs.sb.feature_incompat.bit64).ok()
+        GroupDesc::new(&mut self.fs.inner, self.fs.sb.feature_64bit()).ok()
       }
     }
   }
