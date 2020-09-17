@@ -482,10 +482,10 @@ impl std::fmt::Display for Error
   {
     write!(
       f,
-      "{}",
+      "Superblock error: {}",
       match self {
         Self::IO(error) => format!(
-          "An IO error occurred while reading the superblock: {}",
+          "An IO error occurred: {}",
           error
         ),
         Self::String(error) => format!("A string error occurred: {}", error),

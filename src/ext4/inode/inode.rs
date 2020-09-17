@@ -49,10 +49,10 @@ impl std::fmt::Display for Error
   {
     write!(
       f,
-      "{}",
+      "Inode error: {}",
       match self {
         Self::IO(error) => format!(
-          "An IO error occurred while reading the inode table: {}",
+          "An IO error occurred: {}",
           error
         ),
       }
