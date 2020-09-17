@@ -23,7 +23,7 @@ impl Dump
   {
     let img = File::open(self.path.as_path())?;
 
-    let mut fs = FileSystem::new(img, self.offset).unwrap_or_else(|err| {
+    let fs = FileSystem::new(img, self.offset).unwrap_or_else(|err| {
       die!("{}", err);
     });
 
@@ -33,10 +33,6 @@ impl Dump
     }
 
     print!("{}", fs.sb);
-
-    for i in fs.iter_group_descriptors() {
-      println!("{:#?}", i);
-    }
 
     Ok(())
   }
