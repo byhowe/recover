@@ -4,9 +4,9 @@ use std::io::{self, Seek, SeekFrom};
 pub struct GroupDescIter<'fs, R>
 {
   fs: &'fs mut FileSystem<R>,
+  first_desc_offset: u32,
   count: u32,
   idx: u32,
-  first_desc_offset: u32,
 }
 
 impl<'fs, R> GroupDescIter<'fs, R>
@@ -36,18 +36,18 @@ where
     if self.idx == self.count {
       None
     } else {
-      let group_desc_offset: u32 = self.first_desc_offset
-        + self.idx
-          * if self.fs.sb.feature_incompat.bit64 {
-            64
-          } else {
-            32
-          };
+      let group_desc_size: u32 = if self.fs.sb.feature_incompat.bit64 {
+        GroupDesc::RAW_WIDTH64 as u32
+      } else {
+        GroupDesc::RAW_WIDTH32 as u32
+      };
+      let group_desc_offset: u32 = self.first_desc_offset + self.idx * group_desc_size;
       self.idx += 1;
       if let Err(_) = self.fs.seek(SeekFrom::Start(group_desc_offset as u64)) {
-        return None;
+        None
+      } else {
+        GroupDesc::new(&mut self.fs.inner, self.fs.sb.feature_incompat.bit64).ok()
       }
-      GroupDesc::new(&mut self.fs.inner, self.fs.sb.feature_incompat.bit64).ok()
     }
   }
 
