@@ -1,7 +1,7 @@
 use crate::{die, error, info};
-use recover::ext4::Superblock;
+use recover::ext4::FileSystem;
 use std::fs::File;
-use std::io::{self, Seek, SeekFrom};
+use std::io;
 use std::path::PathBuf;
 
 pub(crate) struct Dump
@@ -21,20 +21,22 @@ impl Dump
 
   fn read_img(&self) -> io::Result<()>
   {
-    let mut img = File::open(self.path.as_path())?;
-    img.seek(SeekFrom::Start(self.offset))?;
-    img.seek(SeekFrom::Current(1024))?;
+    let img = File::open(self.path.as_path())?;
 
-    let sb = Superblock::new(&mut img).unwrap_or_else(|err| {
-      die!("Superblock error: {}", err);
+    let mut fs = FileSystem::new(img, self.offset).unwrap_or_else(|err| {
+      die!("{}", err);
     });
 
-    if let Some(err) = sb.check_signature() {
+    if let Some(err) = fs.sb.check_signature() {
       error!("Magic error: {}", err);
       info!("This dump information may not be accurate.");
     }
 
-    print!("{}", sb);
+    print!("{}", fs.sb);
+
+    for i in fs.iter_group_descriptors() {
+      println!("{:#?}", i);
+    }
 
     Ok(())
   }

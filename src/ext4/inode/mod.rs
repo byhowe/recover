@@ -1,5 +1,5 @@
-mod raw;
 mod inode;
+mod raw;
 
-pub(crate) use raw::InodeRaw;
 pub use inode::Inode;
+pub(crate) use raw::InodeRaw;

@@ -5,9 +5,11 @@ impl std::fmt::Display for Superblock
 {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
   {
-    let inode_blocks_per_group: u32 =
-      ((self.inodes_per_group * self.get_inode_size() as u32) + self.get_block_size() - 1)
-        / self.get_block_size();
+    let inode_blocks_per_group: u64 = ((self.inodes_per_group as u64
+      * self.get_inode_size() as u64)
+      + self.get_block_size() as u64
+      - 1)
+      / self.get_block_size() as u64;
 
     writeln!(
       f,
