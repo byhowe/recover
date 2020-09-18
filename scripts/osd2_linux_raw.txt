@@ -1,0 +1,6 @@
+0x0 	__le16 	l_i_blocks_high 	Upper 16-bits of the block count. Please see the note attached to i_blocks_lo.
+0x2 	__le16 	l_i_file_acl_high 	Upper 16-bits of the extended attribute block (historically, the file ACL location). See the Extended Attributes section below.
+0x4 	__le16 	l_i_uid_high 	Upper 16-bits of the Owner UID.
+0x6 	__le16 	l_i_gid_high 	Upper 16-bits of the GID.
+0x8 	__le16 	l_i_checksum_lo 	Lower 16-bits of the inode checksum.
+0xA 	__le16 	l_i_reserved 	Unused.

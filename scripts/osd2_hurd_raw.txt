@@ -1,0 +1,5 @@
+0x0 	__le16 	h_i_reserved1 	??
+0x2 	__u16 	h_i_mode_high 	Upper 16-bits of the file mode.
+0x4 	__le16 	h_i_uid_high 	Upper 16-bits of the Owner UID.
+0x6 	__le16 	h_i_gid_high 	Upper 16-bits of the GID.
+0x8 	__u32 	h_i_author 	Author code?

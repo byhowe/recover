@@ -1,0 +1,3 @@
+0x0 	__le16 	h_i_reserved1 	??
+0x2 	__u16 	m_i_file_acl_high 	Upper 16-bits of the extended attribute block (historically, the file ACL location).
+0x4 	__u32 	m_i_reserved2[2] 	??

@@ -78,3 +78,11 @@ bitflags! {
     const USER_MODIFIABLE = 0x604BC0FF;
   }
 }
+
+impl Flags
+{
+  pub fn from_raw(raw: u32) -> Self
+  {
+    unsafe { Self::from_bits_unchecked(raw) }
+  }
+}

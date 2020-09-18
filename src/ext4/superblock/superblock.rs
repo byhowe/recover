@@ -10,10 +10,12 @@ use std::io;
 
 macro_rules! feature {
   ($feature_name:ident, $feature_type:ident, $name:ident, $feature_flag:ident) => {
+    #[inline(always)]
     pub fn $name(&self) -> bool
     {
-      use super::$feature_type;
-      self.$feature_name.contains($feature_type::$feature_flag)
+      self
+        .$feature_name
+        .contains(super::$feature_type::$feature_flag)
     }
   };
 }
@@ -247,6 +249,11 @@ impl Superblock
   pub const RAW_WIDTH: usize = SuperblockRaw::WIDTH;
 
   pub const MAGIC_SIGNATURE: u16 = 0xEF53;
+
+  /// 1024
+  pub const MIN_BLOCK_LOG_SIZE: u32 = 10;
+  /// 65536
+  pub const MAX_BLOCK_LOG_SIZE: u32 = 16;
 
   pub fn new<R>(inner: &mut R) -> Result<Self, Error>
   where

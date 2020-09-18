@@ -1,5 +1,21 @@
 use chrono::{DateTime, TimeZone, Utc};
 
+#[cfg(target_endian = "little")]
+#[macro_export]
+macro_rules! concat_lo_hi {
+  ($ty:ty, $lo:expr, $hi:expr) => {
+    ($lo as $ty) | ($hi as $ty) << (std::mem::size_of::<$ty>())
+  };
+}
+
+#[cfg(target_endian = "big")]
+#[macro_export]
+macro_rules! concat_lo_hi {
+  ($ty:ty, $lo:expr, $hi:expr) => {
+    ($lo as $ty) << (std::mem::size_of::<$ty>()) | ($hi as $ty)
+  };
+}
+
 #[macro_export]
 macro_rules! add_to_list {
   ($self:ident, $list:ident, $item:expr, $flag_name:ident) => {
