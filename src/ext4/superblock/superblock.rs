@@ -3,7 +3,7 @@ use super::{
   FeatureCompat, FeatureIncompat, Flags, HashVersion, ReadOnlyFeatureCompat, RevisionLevel, State,
   SuperblockRaw,
 };
-use crate::uuid::Uuid;
+use crate::{ext4::inode::Inode, uuid::Uuid};
 use chrono::{DateTime, Duration, TimeZone, Utc};
 use std::convert::{TryFrom, TryInto};
 use std::io;
@@ -248,10 +248,6 @@ impl Superblock
 
   pub const MAGIC_SIGNATURE: u16 = 0xEF53;
 
-  pub const GOOD_OLD_FIRST_INO: u32 = 11;
-  pub const GOOD_OLD_REV: RevisionLevel = RevisionLevel::Original;
-  pub const GOOD_OLD_INODE_SIZE: u16 = 128;
-
   pub fn new<R>(inner: &mut R) -> Result<Self, Error>
   where
     R: io::Read,
@@ -287,8 +283,8 @@ impl Superblock
 
   pub fn get_inode_size(&self) -> u16
   {
-    if self.rev_level == Self::GOOD_OLD_REV {
-      Self::GOOD_OLD_INODE_SIZE
+    if self.rev_level == RevisionLevel::GOOD_OLD_REV {
+      Inode::GOOD_OLD_INODE_SIZE
     } else {
       self.inode_size
     }

@@ -8,6 +8,8 @@ pub enum RevisionLevel
 
 impl RevisionLevel
 {
+  pub const GOOD_OLD_REV: Self = Self::Original;
+
   const ORIGINAL_FORMAT: u32 = 0;
   const V2_FORMAT: u32 = 1;
 

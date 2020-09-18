@@ -9,6 +9,9 @@ pub struct Inode
 
 impl Inode
 {
+  pub const GOOD_OLD_FIRST_INO: u32 = 11;
+  pub const GOOD_OLD_INODE_SIZE: u16 = 128;
+
   pub const RAW_WIDTH: usize = InodeRaw::WIDTH;
 
   pub fn new<R>(inner: &mut R) -> Result<Self, Error>
