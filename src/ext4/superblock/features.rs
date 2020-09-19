@@ -1,19 +1,64 @@
+use super::Superblock;
 use crate::add_to_list;
 use bitflags::bitflags;
 
-bitflags! {
-    pub struct FeatureCompat: u32 {
-        const DIR_PREALLOC = 0x1;
-        const IMAGIC_INODE = 0x2;
-        const HAS_JOURNAL = 0x4;
-        const EXT_ATTR = 0x8;
-        const RESIZE_INODE = 0x10;
-        const DIR_INDEX = 0x20;
-        const LAZY_BG = 0x40;
-        const EXCLUDE_INODE = 0x80;
-        const EXCLUDE_BITMAP = 0x100;
-        const SPARSE_SUPER2 = 0x200;
+macro_rules! feature_compat {
+  ($name:ident, $feature_flag:ident) => {
+    impl Superblock
+    {
+      #[inline(always)]
+      pub fn $name(&self) -> bool
+      {
+        self.feature_compat.contains(FeatureCompat::$feature_flag)
+      }
     }
+  };
+}
+
+macro_rules! feature_incompat {
+  ($name:ident, $feature_flag:ident) => {
+    impl Superblock
+    {
+      #[inline(always)]
+      pub fn $name(&self) -> bool
+      {
+        self
+          .feature_incompat
+          .contains(FeatureIncompat::$feature_flag)
+      }
+    }
+  };
+}
+
+macro_rules! feature_ro_compat {
+  ($name:ident, $feature_flag:ident) => {
+    impl Superblock
+    {
+      #[inline(always)]
+      pub fn $name(&self) -> bool
+      {
+        self
+          .feature_ro_compat
+          .contains(ReadOnlyFeatureCompat::$feature_flag)
+      }
+    }
+  };
+}
+
+bitflags! {
+  pub struct FeatureCompat: u32
+  {
+    const DIR_PREALLOC = 0x1;
+    const IMAGIC_INODE = 0x2;
+    const HAS_JOURNAL = 0x4;
+    const EXT_ATTR = 0x8;
+    const RESIZE_INODE = 0x10;
+    const DIR_INDEX = 0x20;
+    const LAZY_BG = 0x40;
+    const EXCLUDE_INODE = 0x80;
+    const EXCLUDE_BITMAP = 0x100;
+    const SPARSE_SUPER2 = 0x200;
+  }
 }
 
 impl FeatureCompat
@@ -180,3 +225,47 @@ impl std::fmt::Display for ReadOnlyFeatureCompat
     write!(f, "{}", crate::util::get_string_list(&self.features_list()))
   }
 }
+
+feature_compat!(feature_dir_prealloc, DIR_PREALLOC);
+feature_compat!(feature_imagic_inode, IMAGIC_INODE);
+feature_compat!(feature_has_journal, HAS_JOURNAL);
+feature_compat!(feature_ext_attr, EXT_ATTR);
+feature_compat!(feature_resize_inode, RESIZE_INODE);
+feature_compat!(feature_dir_index, DIR_INDEX);
+feature_compat!(feature_lazy_bg, LAZY_BG);
+feature_compat!(feature_exclude_inode, EXCLUDE_INODE);
+feature_compat!(feature_exclude_bitmap, EXCLUDE_BITMAP);
+feature_compat!(feature_sparse_super2, SPARSE_SUPER2);
+
+feature_incompat!(feature_compression, COMPRESSION);
+feature_incompat!(feature_filetype, FILETYPE);
+feature_incompat!(feature_recover, RECOVER);
+feature_incompat!(feature_journal_dev, JOURNAL_DEV);
+feature_incompat!(feature_meta_bg, META_BG);
+feature_incompat!(feature_extent, EXTENT);
+feature_incompat!(feature_64bit, BIT64);
+feature_incompat!(feature_mmp, MMP);
+feature_incompat!(feature_flex_bg, FLEX_BG);
+feature_incompat!(feature_ea_inode, EA_INODE);
+feature_incompat!(feature_dirdata, DIRDATA);
+feature_incompat!(feature_csum_seed, CSUM_SEED);
+feature_incompat!(feature_largedir, LARGEDIR);
+feature_incompat!(feature_inline_data, INLINE_DATA);
+feature_incompat!(feature_encrypt, ENCRYPT);
+feature_incompat!(feature_casefold, CASEFOLD);
+
+feature_ro_compat!(feature_sparse_super, SPARSE_SUPER);
+feature_ro_compat!(feature_large_file, LARGE_FILE);
+feature_ro_compat!(feature_btree_dir, BTREE_DIR);
+feature_ro_compat!(feature_huge_file, HUGE_FILE);
+feature_ro_compat!(feature_gdt_csum, GDT_CSUM);
+feature_ro_compat!(feature_dir_nlink, DIR_NLINK);
+feature_ro_compat!(feature_extra_isize, EXTRA_ISIZE);
+feature_ro_compat!(feature_has_snapshot, HAS_SNAPSHOT);
+feature_ro_compat!(feature_quota, QUOTA);
+feature_ro_compat!(feature_bigalloc, BIGALLOC);
+feature_ro_compat!(feature_metadata_csum, METADATA_CSUM);
+feature_ro_compat!(feature_replica, REPLICA);
+feature_ro_compat!(feature_readonly, READONLY);
+feature_ro_compat!(feature_project, PROJECT);
+feature_ro_compat!(feature_verity, VERITY);
