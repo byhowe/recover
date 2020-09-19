@@ -113,20 +113,12 @@ pub fn get_group(gid: u16) -> String
 #[inline(always)]
 pub fn get_user(uid: u16) -> String
 {
-  format!(
-    "{} (user {})",
-    uid,
-    if uid == 0 { "root" } else { "unknown" }
-  )
+  format!("{} (user {})", uid, if uid == 0 { "root" } else { "unknown" })
 }
 
 #[cfg(target_family = "windows")]
 #[inline(always)]
 pub fn get_group(gid: u16) -> String
 {
-  format!(
-    "{} (group {})",
-    gid,
-    if gid == 0 { "root" } else { "unknown" }
-  )
+  format!("{} (group {})", gid, if gid == 0 { "root" } else { "unknown" })
 }

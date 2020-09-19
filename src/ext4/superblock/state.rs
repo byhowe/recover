@@ -29,12 +29,7 @@ impl std::fmt::Display for State
       output.push("not clean");
     }
     add_to_list!(self, output, "errors detected", ERRORS_DETECTED);
-    add_to_list!(
-      self,
-      output,
-      "orphans being recovered",
-      ORPHANS_BEING_RECOVERED
-    );
+    add_to_list!(self, output, "orphans being recovered", ORPHANS_BEING_RECOVERED);
     if !self.intersects(Self::all()) {
       output.push("unknown bits were found");
     }

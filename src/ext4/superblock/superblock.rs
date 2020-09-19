@@ -1,7 +1,6 @@
 use super::{
-  CharEncoding, ChecksumType, Creator, DefaultMountOptions, EncryptionMode, ErrorPolicy,
-  FeatureCompat, FeatureIncompat, Flags, HashVersion, ReadOnlyFeatureCompat, RevisionLevel, State,
-  SuperblockRaw,
+  CharEncoding, ChecksumType, Creator, DefaultMountOptions, EncryptionMode, ErrorPolicy, FeatureCompat,
+  FeatureIncompat, Flags, HashVersion, ReadOnlyFeatureCompat, RevisionLevel, State, SuperblockRaw,
 };
 use crate::{ext4::inode::Inode, uuid::Uuid};
 use chrono::{DateTime, Duration, TimeZone, Utc};

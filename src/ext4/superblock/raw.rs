@@ -355,10 +355,7 @@ impl From<&[u8; Self::WIDTH]> for SuperblockRaw
     raw.s_usr_quota_inum = u32::from_le(raw.s_usr_quota_inum);
     raw.s_grp_quota_inum = u32::from_le(raw.s_grp_quota_inum);
     raw.s_overhead_blocks = u32::from_le(raw.s_overhead_blocks);
-    raw.s_backup_bgs = [
-      u32::from_le(raw.s_backup_bgs[0]),
-      u32::from_le(raw.s_backup_bgs[1]),
-    ];
+    raw.s_backup_bgs = [u32::from_le(raw.s_backup_bgs[0]), u32::from_le(raw.s_backup_bgs[1])];
     raw.s_lpf_ino = u32::from_le(raw.s_lpf_ino);
     raw.s_prj_quota_inum = u32::from_le(raw.s_prj_quota_inum);
     raw.s_checksum_seed = u32::from_le(raw.s_checksum_seed);

@@ -21,12 +21,7 @@ impl Flags
   {
     let mut output = Vec::new();
     add_to_list!(self, output, "signed_directory_hash", SIGNED_DIRECTORY_HASH);
-    add_to_list!(
-      self,
-      output,
-      "unsigned_directory_hash",
-      UNSIGNED_DIRECTORY_HASH
-    );
+    add_to_list!(self, output, "unsigned_directory_hash", UNSIGNED_DIRECTORY_HASH);
     add_to_list!(self, output, "test_filesystem", TEST_FILESYSTEM);
     if !self.intersects(Self::all()) {
       output.push("(unknown_bits)")

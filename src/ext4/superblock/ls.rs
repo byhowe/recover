@@ -5,11 +5,9 @@ impl std::fmt::Display for Superblock
 {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
   {
-    let inode_blocks_per_group: u64 = ((self.inodes_per_group as u64
-      * self.get_inode_size() as u64)
-      + self.get_block_size() as u64
-      - 1)
-      / self.get_block_size() as u64;
+    let inode_blocks_per_group: u64 =
+      ((self.inodes_per_group as u64 * self.get_inode_size() as u64) + self.get_block_size() as u64 - 1)
+        / self.get_block_size() as u64;
 
     writeln!(
       f,
@@ -41,21 +39,13 @@ impl std::fmt::Display for Superblock
     writeln!(f, "Filesystem OS type:       {}", self.creator_os)?;
     writeln!(f, "Inode count:              {}", self.inodes_count)?;
     writeln!(f, "Block count:              {}", self.get_blocks_count())?;
-    writeln!(
-      f,
-      "Reserved block count:     {}",
-      self.get_reserved_blocks_count()
-    )?;
+    writeln!(f, "Reserved block count:     {}", self.get_reserved_blocks_count())?;
 
     if self.overhead_blocks != 0 {
       writeln!(f, "Overhead clusters:        {}", self.overhead_blocks)?;
     }
 
-    writeln!(
-      f,
-      "Free blocks:              {}",
-      self.get_free_blocks_count()
-    )?;
+    writeln!(f, "Free blocks:              {}", self.get_free_blocks_count())?;
     writeln!(f, "Free inodes:              {}", self.free_inodes_count)?;
     writeln!(f, "First block:              {}", self.first_data_block)?;
     writeln!(f, "Block size:               {}", self.get_block_size())?;
@@ -106,16 +96,8 @@ impl std::fmt::Display for Superblock
       "Filesystem created:       {}",
       crate::util::get_datetime(self.mkfs_time)
     )?;
-    writeln!(
-      f,
-      "Last mount time:          {}",
-      crate::util::get_datetime(self.mtime)
-    )?;
-    writeln!(
-      f,
-      "Last write time:          {}",
-      crate::util::get_datetime(self.wtime)
-    )?;
+    writeln!(f, "Last mount time:          {}", crate::util::get_datetime(self.mtime))?;
+    writeln!(f, "Last write time:          {}", crate::util::get_datetime(self.wtime))?;
     writeln!(f, "Mount count:              {}", self.mnt_count)?;
     writeln!(f, "Maximum mount count:      {}", self.max_mnt_count)?;
     writeln!(
@@ -127,20 +109,12 @@ impl std::fmt::Display for Superblock
       f,
       "Check interval:           {} second{} ({})",
       self.checkinterval.num_seconds(),
-      if self.checkinterval.num_seconds() == 1 {
-        ""
-      } else {
-        "s"
-      },
+      if self.checkinterval.num_seconds() == 1 { "" } else { "s" },
       self.checkinterval,
     )?;
 
     if !self.checkinterval.is_zero() {
-      writeln!(
-        f,
-        "Next check after:         {}",
-        self.lastcheck + self.checkinterval
-      )?;
+      writeln!(f, "Next check after:         {}", self.lastcheck + self.checkinterval)?;
     }
 
     if self.kbytes_written != 0 {
@@ -222,11 +196,7 @@ impl std::fmt::Display for Superblock
     if self.snapshot_inum != 0 {
       writeln!(f, "Snapshot inode:           {}", self.snapshot_inum)?;
       writeln!(f, "Snapshot ID:              {}", self.snapshot_id)?;
-      writeln!(
-        f,
-        "Snapshot reserved blocks: {}",
-        self.snapshot_r_blocks_count
-      )?;
+      writeln!(f, "Snapshot reserved blocks: {}", self.snapshot_r_blocks_count)?;
     }
 
     if self.snapshot_list != 0 {

@@ -29,12 +29,7 @@ macro_rules! feature_incompat {
 
 macro_rules! feature_ro_compat {
   ($name:ident, $feature_flag:ident) => {
-    feature!(
-      feature_ro_compat,
-      ReadOnlyFeatureCompat,
-      $name,
-      $feature_flag
-    );
+    feature!(feature_ro_compat, ReadOnlyFeatureCompat, $name, $feature_flag);
   };
 }
 

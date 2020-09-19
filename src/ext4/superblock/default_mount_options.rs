@@ -52,10 +52,6 @@ impl std::fmt::Display for DefaultMountOptions
 {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
   {
-    write!(
-      f,
-      "{}",
-      crate::util::get_string_list(&self.default_mount_opts_list())
-    )
+    write!(f, "{}", crate::util::get_string_list(&self.default_mount_opts_list()))
   }
 }
