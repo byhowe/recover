@@ -2,46 +2,39 @@ use super::Superblock;
 use crate::add_to_list;
 use bitflags::bitflags;
 
-macro_rules! feature_compat {
-  ($name:ident, $feature_flag:ident) => {
+macro_rules! feature {
+  ($feature_name:ident, $feature_type:ident, $name:ident, $feature_flag:ident) => {
     impl Superblock
     {
       #[inline(always)]
       pub fn $name(&self) -> bool
       {
-        self.feature_compat.contains(FeatureCompat::$feature_flag)
+        self.$feature_name.contains($feature_type::$feature_flag)
       }
     }
+  };
+}
+
+macro_rules! feature_compat {
+  ($name:ident, $feature_flag:ident) => {
+    feature!(feature_compat, FeatureCompat, $name, $feature_flag);
   };
 }
 
 macro_rules! feature_incompat {
   ($name:ident, $feature_flag:ident) => {
-    impl Superblock
-    {
-      #[inline(always)]
-      pub fn $name(&self) -> bool
-      {
-        self
-          .feature_incompat
-          .contains(FeatureIncompat::$feature_flag)
-      }
-    }
+    feature!(feature_incompat, FeatureIncompat, $name, $feature_flag);
   };
 }
 
 macro_rules! feature_ro_compat {
   ($name:ident, $feature_flag:ident) => {
-    impl Superblock
-    {
-      #[inline(always)]
-      pub fn $name(&self) -> bool
-      {
-        self
-          .feature_ro_compat
-          .contains(ReadOnlyFeatureCompat::$feature_flag)
-      }
-    }
+    feature!(
+      feature_ro_compat,
+      ReadOnlyFeatureCompat,
+      $name,
+      $feature_flag
+    );
   };
 }
 
