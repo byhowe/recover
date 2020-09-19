@@ -52,13 +52,18 @@ impl Mode
   {
     unsafe { Self::from_bits_unchecked(raw) }
   }
+
+  pub fn file_type_flags(&self) -> Self
+  {
+    unsafe { Mode::from_bits_unchecked(self.bits & 0xF000) }
+  }
 }
 
 impl std::fmt::Display for Mode
 {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
   {
-    let dev_char: char = match unsafe { Self::from_bits_unchecked(self.bits & 0xF000) } {
+    let dev_char: char = match self.file_type_flags() {
       Self::FIFO => '|',
       Self::CHAR_DEV => 'c',
       Self::DIR => 'd',

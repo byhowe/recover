@@ -1,3 +1,4 @@
+mod file_type;
 mod flags;
 mod inode;
 mod mode;
@@ -5,6 +6,7 @@ mod osd1;
 mod osd2;
 mod raw;
 
+pub use file_type::FileType;
 pub use flags::Flags;
 pub use inode::Inode;
 pub use mode::Mode;
